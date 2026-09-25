@@ -58,12 +58,7 @@ fn test() {
             }
         });
 
-        if intersection_bf != intersection_bvh {
-            panic!(
-                "bf result: {:?}\nbvh result: {:?}\nlist: {:?}\nbvh: {:?}",
-                intersection_bf, intersection_bvh, aabbs, bvh
-            );
-        }
+        assert_eq!(intersection_bf, intersection_bvh);
 
         intersection_bf.clear();
         intersection_bvh.clear();

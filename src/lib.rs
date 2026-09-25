@@ -524,43 +524,47 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             panic!("Node {:?} to be removed is not leaf!", index.0);
         }
 
+        if index == self.root_index() {
+            self.root_index = NodeIndex::NULL;
+            self.nodes.remove(index.0);
+            return;
+        }
+
         let parent_index = node.parent_index;
 
-        if index != self.root_index() {
-            let parent = &self.nodes[parent_index.0];
+        let parent = &self.nodes[parent_index.0];
 
-            let (child1, child2) = parent.ty.as_internal();
+        let (child1, child2) = parent.ty.as_internal();
 
-            let sibling_index = if child1 == index {
-                child2
-            } else if child2 == index {
-                child1
+        let sibling_index = if child1 == index {
+            child2
+        } else if child2 == index {
+            child1
+        } else {
+            unreachable!()
+        };
+
+        let new_parent_index = if node.parent_index == self.root_index() {
+            self.root_index = sibling_index;
+            NodeIndex::NULL
+        } else {
+            let grand_parent_index = parent.parent_index;
+            let grand_parent = &mut self.nodes[grand_parent_index.0];
+
+            let (child1, child2) = grand_parent.ty.as_internal_mut();
+
+            if *child1 == parent_index {
+                *child1 = sibling_index;
+            } else if *child2 == parent_index {
+                *child2 = sibling_index;
             } else {
                 unreachable!()
-            };
+            }
 
-            let new_parent_index = if node.parent_index == self.root_index() {
-                self.root_index = sibling_index;
-                NodeIndex::NULL
-            } else {
-                let grand_parent_index = parent.parent_index;
-                let grand_parent = &mut self.nodes[grand_parent_index.0];
+            grand_parent_index
+        };
 
-                let (child1, child2) = grand_parent.ty.as_internal_mut();
-
-                if *child1 == parent_index {
-                    *child1 = sibling_index;
-                } else if *child2 == parent_index {
-                    *child2 = sibling_index;
-                } else {
-                    unreachable!()
-                }
-
-                grand_parent_index
-            };
-
-            self.nodes[sibling_index.0].parent_index = new_parent_index;
-        }
+        self.nodes[sibling_index.0].parent_index = new_parent_index;
 
         self.nodes.remove(index.0);
         self.nodes.remove(parent_index.0);
