@@ -377,7 +377,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                     .union(&self.nodes[g2i].bounding_volume);
                 let cost_c2g1 = aabb_c2g2.surface_area_heuristic();
 
-                let aabb_c2g1 = child1
+                let aabb_c2g1 = child2
                     .bounding_volume
                     .union(&self.nodes[g1i].bounding_volume);
                 let cost_c2g2 = aabb_c2g1.surface_area_heuristic();

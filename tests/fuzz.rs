@@ -35,7 +35,7 @@ fn test() {
 
     let mut aabbs: Vec<Aabb> = Vec::new();
 
-    for i in 0..13 {
+    for i in 0..300 {
         let aabb = rand_aabb();
         aabbs.push(aabb);
         bvh.insert_leaf(aabb, i);
