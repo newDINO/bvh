@@ -8,13 +8,7 @@ use nalgebra as na;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 
-fn rand_vec3(rng: &mut impl Rng, min: na::Vector3<f32>, max: na::Vector3<f32>) -> na::Vector3<f32> {
-    na::Vector3::new(
-        rng.random_range::<f32, _>(min.x..max.x),
-        rng.random_range::<f32, _>(min.y..max.y),
-        rng.random_range::<f32, _>(min.z..max.z),
-    )
-}
+use crate::common::rand_vec3;
 
 #[test]
 fn test() {

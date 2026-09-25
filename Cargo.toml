@@ -12,3 +12,9 @@ edition = "2024"
 rand = "0.10"
 rand_chacha = "0.10"
 nalgebra = "0.35"
+
+criterion = "0.8"
+
+[[bench]]
+name = "query"
+harness = false
