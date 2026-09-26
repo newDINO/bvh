@@ -94,6 +94,8 @@ impl<T> SlotPool<T> {
     pub fn get(&self, handle: SlotPoolHandle) -> Option<&T> {
         self.slots.get(handle.as_usize())?.as_ref()
     }
+
+    #[cfg(not(debug_assertions))]
     pub unsafe fn get_unchecked(&self, handle: SlotPoolHandle) -> &T {
         unsafe {
             self.slots
