@@ -80,6 +80,10 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
+    /// Performance compared to [`Self::query_intersection`]
+    /// (tested on my device, use `cargo bench --bench query` to test it on your device):
+    /// - Basically the same when there are 1K leaves.
+    /// - 10% improvement when there are 1M leaves.
     #[inline]
     pub fn query_intersection_stack(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
         if self.root_index == NodeIndex::NULL {
