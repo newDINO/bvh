@@ -40,6 +40,7 @@ fn test() {
 
     let mut intersection_bf: HashSet<usize> = HashSet::new();
     let mut intersection_bvh: HashSet<usize> = HashSet::new();
+    let mut intersection_bvh_stack: HashSet<usize> = HashSet::new();
 
     let mut query_stack = Vec::new();
 
@@ -52,15 +53,23 @@ fn test() {
             }
         });
 
-        bvh.find_intersecting_leafs(&mut query_stack, aabb, |index| {
+        bvh.query_intersection(aabb, |index| {
             if aabb.intersects(&aabbs[index]) {
                 intersection_bvh.insert(index);
             }
         });
 
+        bvh.query_intersection_stack(&mut query_stack, aabb, |index| {
+            if aabb.intersects(&aabbs[index]) {
+                intersection_bvh_stack.insert(index);
+            }
+        });
+
+        assert_eq!(intersection_bf, intersection_bvh_stack);
         assert_eq!(intersection_bf, intersection_bvh);
 
         intersection_bf.clear();
         intersection_bvh.clear();
+        intersection_bvh_stack.clear();
     }
 }

@@ -80,8 +80,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
-    #[inline]
-    pub fn find_intersecting_leafs(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
+    pub fn query_intersection_stack(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
         if self.root_index == NodeIndex::NULL {
             return;
         }
@@ -108,6 +107,47 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                 }
                 NodeType::Leaf(entity) => f(entity),
             }
+        }
+    }
+
+    pub fn query_intersection(&self, q: B, mut f: impl FnMut(D)) {
+        if self.root_index == NodeIndex::NULL {
+            return;
+        }
+
+        #[cfg(debug_assertions)]
+        let root = &self.nodes[self.root_index.0];
+
+        #[cfg(not(debug_assertions))]
+        let root = unsafe { self.nodes.get_unchecked(self.root_index.0) };
+
+        if q.intersects(&root.bounding_volume) {
+            self.query_intersection_rec(root, &q, &mut f);
+        }
+    }
+
+    fn query_intersection_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(D)) {
+        match node.ty {
+            NodeType::Internal { child1, child2 } => {
+                #[cfg(debug_assertions)]
+                let c1 = &self.nodes[child1.0];
+                #[cfg(not(debug_assertions))]
+                let c1 = unsafe { self.nodes.get_unchecked(child1.0) };
+
+                if q.intersects(&c1.bounding_volume) {
+                    self.query_intersection_rec(c1, q, f);
+                }
+
+                #[cfg(debug_assertions)]
+                let c2 = &self.nodes[child2.0];
+                #[cfg(not(debug_assertions))]
+                let c2 = unsafe { self.nodes.get_unchecked(child2.0) };
+
+                if q.intersects(&c2.bounding_volume) {
+                    self.query_intersection_rec(c2, q, f);
+                }
+            }
+            NodeType::Leaf(entity) => f(entity),
         }
     }
 
@@ -611,13 +651,16 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
             enlargement,
         }
     }
-    pub fn find_intersecting_leafs(
+    pub fn query_intersection_stack(
         &self,
         stack: &mut Vec<NodeIndex>,
         bounding_volume: B,
         f: impl FnMut(D),
     ) {
-        self.bvh.find_intersecting_leafs(stack, bounding_volume, f)
+        self.bvh.query_intersection_stack(stack, bounding_volume, f)
+    }
+    pub fn query_intersection(&self, bounding_volume: B, f: impl FnMut(D)) {
+        self.bvh.query_intersection(bounding_volume, f);
     }
     pub fn remove_leaf(&mut self, index: NodeIndex) {
         self.bvh.remove_leaf(index);
