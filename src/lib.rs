@@ -80,6 +80,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
+    #[inline]
     pub fn query_intersection_stack(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
         if self.root_index == NodeIndex::NULL {
             return;
@@ -110,6 +111,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
+    #[inline]
     pub fn query_intersection(&self, q: B, mut f: impl FnMut(D)) {
         if self.root_index == NodeIndex::NULL {
             return;
@@ -651,6 +653,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
             enlargement,
         }
     }
+
+    #[inline]
     pub fn query_intersection_stack(
         &self,
         stack: &mut Vec<NodeIndex>,
@@ -659,6 +663,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
     ) {
         self.bvh.query_intersection_stack(stack, bounding_volume, f)
     }
+
+    #[inline]
     pub fn query_intersection(&self, bounding_volume: B, f: impl FnMut(D)) {
         self.bvh.query_intersection(bounding_volume, f);
     }
