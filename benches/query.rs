@@ -57,10 +57,10 @@ fn regular_cube(c: &mut Criterion, a: usize) {
         })
         .collect();
 
-    c.bench_function(&format!("regular {}^3 bvh", a), |b| {
+    c.bench_function(&format!("bvh_stack regular {}^3", a), |b| {
         let mut i = 0;
 
-        let mut query_stack = Vec::new();
+        let mut query_stack = Vec::with_capacity(16);
 
         b.iter(|| {
             i = (i + 1) % samples.len();
@@ -70,21 +70,21 @@ fn regular_cube(c: &mut Criterion, a: usize) {
                     black_box(id);
                 }
             });
-        })
+        });
     });
+    c.bench_function(&format!("bvh regular {}^3", a), |b| {
+        let mut i = 0;
 
-    // c.bench_function(&format!("regular {}^3 bf", a), |b| {
-    //     let mut i = 0;
-    //     b.iter(|| {
-    //         i = (i + 1) % samples.len();
-    //         let aabb = samples[i];
-    //         list.iter().enumerate().for_each(|(id, other)| {
-    //             if aabb.intersects(other) {
-    //                 black_box(id);
-    //             }
-    //         });
-    //     })
-    // });
+        b.iter(|| {
+            i = (i + 1) % samples.len();
+            let aabb = samples[i];
+            bvh.query_intersection(aabb, |id| {
+                if aabb.intersects(&list[id]) {
+                    black_box(id);
+                }
+            });
+        });
+    });
 }
 
 fn regular_arrange(c: &mut Criterion) {
