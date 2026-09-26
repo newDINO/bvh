@@ -80,6 +80,17 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
+    #[inline]
+    unsafe fn get_node_cfg(&self, index: NodeIndex) -> &Node<B, D> {
+        #[cfg(debug_assertions)]
+        let node = self.nodes.get(index.0).unwrap();
+
+        #[cfg(not(debug_assertions))]
+        let node = unsafe { self.nodes.get_unchecked(index.0) };
+
+        node
+    }
+
     /// Performance compared to [`Self::query_intersection`]
     /// (tested on my device, use `cargo bench --bench query` to test it on your device):
     /// - Basically the same when there are 1K leaves.
@@ -90,22 +101,23 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             return;
         }
 
-        let root = unsafe { self.nodes.get_unchecked(self.root_index.0) };
+        let root = unsafe { self.get_node_cfg(self.root_index) };
+
         if q.intersects(&root.bounding_volume) {
             stack.push(self.root_index);
         }
 
         while let Some(index) = stack.pop() {
-            let node = unsafe { self.nodes.get_unchecked(index.0) };
+            let node = unsafe { self.get_node_cfg(index) };
 
             match node.ty {
                 NodeType::Internal { child1, child2 } => {
-                    let c1 = unsafe { self.nodes.get_unchecked(child1.0) };
+                    let c1 = unsafe { self.get_node_cfg(child1) };
                     if q.intersects(&c1.bounding_volume) {
                         stack.push(child1);
                     }
 
-                    let c2 = unsafe { self.nodes.get_unchecked(child2.0) };
+                    let c2 = unsafe { self.get_node_cfg(child2) };
                     if q.intersects(&c2.bounding_volume) {
                         stack.push(child2);
                     }
@@ -121,11 +133,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             return;
         }
 
-        #[cfg(debug_assertions)]
-        let root = &self.nodes[self.root_index.0];
-
-        #[cfg(not(debug_assertions))]
-        let root = unsafe { self.nodes.get_unchecked(self.root_index.0) };
+        let root = unsafe { self.get_node_cfg(self.root_index) };
 
         if q.intersects(&root.bounding_volume) {
             self.query_intersection_rec(root, &q, &mut f);
@@ -135,19 +143,13 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     fn query_intersection_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(D)) {
         match node.ty {
             NodeType::Internal { child1, child2 } => {
-                #[cfg(debug_assertions)]
-                let c1 = &self.nodes[child1.0];
-                #[cfg(not(debug_assertions))]
-                let c1 = unsafe { self.nodes.get_unchecked(child1.0) };
+                let c1 = unsafe { self.get_node_cfg(child1) };
 
                 if q.intersects(&c1.bounding_volume) {
                     self.query_intersection_rec(c1, q, f);
                 }
 
-                #[cfg(debug_assertions)]
-                let c2 = &self.nodes[child2.0];
-                #[cfg(not(debug_assertions))]
-                let c2 = unsafe { self.nodes.get_unchecked(child2.0) };
+                let c2 = unsafe { self.get_node_cfg(child2) };
 
                 if q.intersects(&c2.bounding_volume) {
                     self.query_intersection_rec(c2, q, f);
