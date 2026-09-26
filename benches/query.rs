@@ -43,7 +43,7 @@ fn regular_cube(c: &mut Criterion, a: usize) {
     });
 
     let mut rng = ChaCha8Rng::from_seed([123; _]);
-    let samples: Vec<Aabb> = (0..128)
+    let samples: Vec<Aabb> = (0..256)
         .map(|_| {
             let point = rand_vec3(
                 &mut rng,

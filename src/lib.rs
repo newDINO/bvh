@@ -4,11 +4,17 @@ use slot_pool::{SlotPool, SlotPoolHandle};
 use std::fmt::Debug;
 
 pub trait BoundingVolume {
+    type Point: Vec3;
     fn intersects(&self, other: &Self) -> bool;
     fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
     fn enlarge(&self, r: f32) -> Self;
     fn surface_area_heuristic(&self) -> f32;
+    fn center(&self) -> Self::Point;
+}
+
+pub trait Vec3 {
+    fn distance_heuristic(&self, other: &Self) -> f32;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -203,6 +209,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     }
 
     fn find_best_sibling(&self, bounding_volume: B) -> NodeIndex {
+        let center = bounding_volume.center();
+
         let area = bounding_volume.surface_area_heuristic();
 
         let mut inherited_cost = 0.0;
@@ -281,6 +289,20 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             if leaf1 && leaf2 || best_cost <= lower_cost1 && best_cost <= lower_cost2 {
                 break;
             }
+
+            let (lower_cost1, lower_cost2) = if lower_cost1 == lower_cost2 && leaf1 == false {
+                core::hint::cold_path();
+
+                debug_assert!(lower_cost1 < f32::MAX);
+                debug_assert!(lower_cost2 < f32::MAX);
+
+                let d1 = child1.bounding_volume.center().distance_heuristic(&center);
+                let d2 = child2.bounding_volume.center().distance_heuristic(&center);
+
+                (d1, d2)
+            } else {
+                (lower_cost1, lower_cost2)
+            };
 
             if lower_cost1 < lower_cost2 && leaf1 == false {
                 index = child1_index;

@@ -1,4 +1,4 @@
-use bvh::BoundingVolume;
+use bvh::{BoundingVolume, Vec3};
 use nalgebra as na;
 
 #[derive(Clone, Copy, Debug)]
@@ -27,7 +27,16 @@ impl Aabb {
     }
 }
 
+pub struct AabbPoint(na::Vector3<f32>);
+
+impl Vec3 for AabbPoint {
+    fn distance_heuristic(&self, other: &Self) -> f32 {
+        (self.0 - other.0).norm_squared()
+    }
+}
+
 impl BoundingVolume for Aabb {
+    type Point = AabbPoint;
     fn contains(&self, other: &Self) -> bool {
         self.max >= other.max && self.min <= other.min
     }
@@ -49,5 +58,8 @@ impl BoundingVolume for Aabb {
             min: self.min.inf(&other.min),
             max: self.max.sup(&other.max),
         }
+    }
+    fn center(&self) -> Self::Point {
+        AabbPoint(0.5 * (self.min + self.max))
     }
 }
