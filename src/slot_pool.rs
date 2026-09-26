@@ -19,12 +19,13 @@ impl<T> Default for SlotPool<T> {
 }
 
 mod handle {
-
     #[derive(Clone, Copy, PartialEq, Eq, Debug)]
     pub struct SlotPoolHandle(u32);
 
     impl SlotPoolHandle {
         pub const NULL: Self = Self(u32::MAX);
+
+        #[inline]
         pub(super) fn from_usize(index: usize) -> Option<Self> {
             let index = index as u32;
             if index >= u32::MAX {
@@ -33,6 +34,8 @@ mod handle {
                 Some(Self(index))
             }
         }
+
+        #[inline]
         pub(super) fn as_usize(&self) -> usize {
             self.0 as usize
         }
@@ -47,6 +50,7 @@ use std::{
 pub use handle::SlotPoolHandle;
 
 impl<T> SlotPool<T> {
+    #[inline]
     pub fn new() -> Self {
         Self {
             slots: Vec::new(),
@@ -54,6 +58,7 @@ impl<T> SlotPool<T> {
         }
     }
 
+    #[inline]
     pub fn insert(&mut self, value: T) -> SlotPoolHandle {
         if let Some(free) = self.frees.pop() {
             self.slots[free.as_usize()] = Some(value);
@@ -67,6 +72,7 @@ impl<T> SlotPool<T> {
         }
     }
 
+    #[inline]
     pub fn allocate_slot(&mut self) -> SlotPoolHandle {
         if let Some(free) = self.frees.pop() {
             free
@@ -78,6 +84,7 @@ impl<T> SlotPool<T> {
         }
     }
 
+    #[inline]
     pub fn insert_at(&mut self, value: T, handle: SlotPoolHandle) -> Result<(), T> {
         if let Some(slot) = self.slots.get_mut(handle.as_usize()) {
             if slot.is_none() {
@@ -91,11 +98,13 @@ impl<T> SlotPool<T> {
         }
     }
 
+    #[inline]
     pub fn get(&self, handle: SlotPoolHandle) -> Option<&T> {
         self.slots.get(handle.as_usize())?.as_ref()
     }
 
     #[cfg(not(debug_assertions))]
+    #[inline]
     pub unsafe fn get_unchecked(&self, handle: SlotPoolHandle) -> &T {
         unsafe {
             self.slots
@@ -105,10 +114,12 @@ impl<T> SlotPool<T> {
         }
     }
 
+    #[inline]
     pub fn get_mut(&mut self, handle: SlotPoolHandle) -> Option<&mut T> {
         self.slots.get_mut(handle.as_usize())?.as_mut()
     }
 
+    #[inline]
     pub fn remove(&mut self, handle: SlotPoolHandle) -> Option<T> {
         if let Some(slot) = self.slots.get_mut(handle.as_usize()) {
             if let Some(value) = slot.take() {
@@ -122,6 +133,7 @@ impl<T> SlotPool<T> {
         }
     }
 
+    #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.slots.iter().filter_map(Option::as_ref)
     }
@@ -129,12 +141,14 @@ impl<T> SlotPool<T> {
 
 impl<T> Index<SlotPoolHandle> for SlotPool<T> {
     type Output = T;
+    #[inline]
     fn index(&self, index: SlotPoolHandle) -> &Self::Output {
         self.slots[index.as_usize()].as_ref().unwrap()
     }
 }
 
 impl<T> IndexMut<SlotPoolHandle> for SlotPool<T> {
+    #[inline]
     fn index_mut(&mut self, index: SlotPoolHandle) -> &mut Self::Output {
         self.slots[index.as_usize()].as_mut().unwrap()
     }

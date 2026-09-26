@@ -79,32 +79,46 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             nodes: SlotPool::new(),
         }
     }
-    pub fn find_intersecting_leafs(&self, bounding_volume: B, mut f: impl FnMut(D)) {
-        if self.root_index != NodeIndex::NULL {
-            self.find_intersecting_leafs_rec(self.root_index, bounding_volume, &mut f);
+
+    #[inline]
+    pub fn find_intersecting_leafs(&self, q: B, mut f: impl FnMut(D)) {
+        if self.root_index == NodeIndex::NULL {
+            return;
+        }
+
+        #[cfg(debug_assertions)]
+        let root = &self.nodes[self.root_index.0];
+
+        #[cfg(not(debug_assertions))]
+        let root = unsafe { self.nodes.get_unchecked(self.root_index.0) };
+
+        if q.intersects(&root.bounding_volume) {
+            self.find_intersecting_leafs_rec(root, &q, &mut f);
         }
     }
-    fn find_intersecting_leafs_rec(
-        &self,
-        index: NodeIndex,
-        bounding_volume: B,
-        f: &mut impl FnMut(D),
-    ) {
-        #[cfg(debug_assertions)]
-        let node = &self.nodes[index.0];
 
-        // Safety: index passed to this function is either root or child index.
-        #[cfg(not(debug_assertions))]
-        let node = unsafe { self.nodes.get_unchecked(index.0) };
+    fn find_intersecting_leafs_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(D)) {
+        match node.ty {
+            NodeType::Internal { child1, child2 } => {
+                #[cfg(debug_assertions)]
+                let c1 = &self.nodes[child1.0];
+                #[cfg(not(debug_assertions))]
+                let c1 = unsafe { self.nodes.get_unchecked(child1.0) };
 
-        if bounding_volume.intersects(&node.bounding_volume) {
-            match node.ty {
-                NodeType::Internal { child1, child2 } => {
-                    self.find_intersecting_leafs_rec(child1, bounding_volume, f);
-                    self.find_intersecting_leafs_rec(child2, bounding_volume, f);
+                if q.intersects(&c1.bounding_volume) {
+                    self.find_intersecting_leafs_rec(c1, q, f);
                 }
-                NodeType::Leaf(entity) => f(entity),
+
+                #[cfg(debug_assertions)]
+                let c2 = &self.nodes[child2.0];
+                #[cfg(not(debug_assertions))]
+                let c2 = unsafe { self.nodes.get_unchecked(child2.0) };
+
+                if q.intersects(&c2.bounding_volume) {
+                    self.find_intersecting_leafs_rec(c2, q, f);
+                }
             }
+            NodeType::Leaf(entity) => f(entity),
         }
     }
 
