@@ -40,6 +40,9 @@ fn test() {
 
     let mut intersection_bf: HashSet<usize> = HashSet::new();
     let mut intersection_bvh: HashSet<usize> = HashSet::new();
+
+    let mut query_stack = Vec::new();
+
     for _ in 0..300 {
         let aabb = rand_aabb();
 
@@ -49,7 +52,7 @@ fn test() {
             }
         });
 
-        bvh.find_intersecting_leafs(aabb, |index| {
+        bvh.find_intersecting_leafs(&mut query_stack, aabb, |index| {
             if aabb.intersects(&aabbs[index]) {
                 intersection_bvh.insert(index);
             }

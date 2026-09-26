@@ -81,44 +81,33 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     }
 
     #[inline]
-    pub fn find_intersecting_leafs(&self, q: B, mut f: impl FnMut(D)) {
+    pub fn find_intersecting_leafs(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
         if self.root_index == NodeIndex::NULL {
             return;
         }
 
-        #[cfg(debug_assertions)]
-        let root = &self.nodes[self.root_index.0];
-
-        #[cfg(not(debug_assertions))]
         let root = unsafe { self.nodes.get_unchecked(self.root_index.0) };
-
         if q.intersects(&root.bounding_volume) {
-            self.find_intersecting_leafs_rec(root, &q, &mut f);
+            stack.push(self.root_index);
         }
-    }
 
-    fn find_intersecting_leafs_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(D)) {
-        match node.ty {
-            NodeType::Internal { child1, child2 } => {
-                #[cfg(debug_assertions)]
-                let c1 = &self.nodes[child1.0];
-                #[cfg(not(debug_assertions))]
-                let c1 = unsafe { self.nodes.get_unchecked(child1.0) };
+        while let Some(index) = stack.pop() {
+            let node = unsafe { self.nodes.get_unchecked(index.0) };
 
-                if q.intersects(&c1.bounding_volume) {
-                    self.find_intersecting_leafs_rec(c1, q, f);
+            match node.ty {
+                NodeType::Internal { child1, child2 } => {
+                    let c1 = unsafe { self.nodes.get_unchecked(child1.0) };
+                    if q.intersects(&c1.bounding_volume) {
+                        stack.push(child1);
+                    }
+
+                    let c2 = unsafe { self.nodes.get_unchecked(child2.0) };
+                    if q.intersects(&c2.bounding_volume) {
+                        stack.push(child2);
+                    }
                 }
-
-                #[cfg(debug_assertions)]
-                let c2 = &self.nodes[child2.0];
-                #[cfg(not(debug_assertions))]
-                let c2 = unsafe { self.nodes.get_unchecked(child2.0) };
-
-                if q.intersects(&c2.bounding_volume) {
-                    self.find_intersecting_leafs_rec(c2, q, f);
-                }
+                NodeType::Leaf(entity) => f(entity),
             }
-            NodeType::Leaf(entity) => f(entity),
         }
     }
 
@@ -622,8 +611,13 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
             enlargement,
         }
     }
-    pub fn find_intersecting_leafs(&self, bounding_volume: B, f: impl FnMut(D)) {
-        self.bvh.find_intersecting_leafs(bounding_volume, f)
+    pub fn find_intersecting_leafs(
+        &self,
+        stack: &mut Vec<NodeIndex>,
+        bounding_volume: B,
+        f: impl FnMut(D),
+    ) {
+        self.bvh.find_intersecting_leafs(stack, bounding_volume, f)
     }
     pub fn remove_leaf(&mut self, index: NodeIndex) {
         self.bvh.remove_leaf(index);

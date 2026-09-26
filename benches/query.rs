@@ -59,10 +59,13 @@ fn regular_cube(c: &mut Criterion, a: usize) {
 
     c.bench_function(&format!("regular {}^3 bvh", a), |b| {
         let mut i = 0;
+
+        let mut query_stack = Vec::new();
+
         b.iter(|| {
             i = (i + 1) % samples.len();
             let aabb = samples[i];
-            bvh.find_intersecting_leafs(aabb, |id| {
+            bvh.find_intersecting_leafs(&mut query_stack, aabb, |id| {
                 if aabb.intersects(&list[id]) {
                     black_box(id);
                 }
