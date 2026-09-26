@@ -1,14 +1,17 @@
-mod common;
+#[path = "../common/aabb.rs"]
+mod aabb;
+#[path = "../common/rand_vec3.rs"]
+mod rand_vec3;
 
 use std::collections::HashSet;
 
 use bvh::{BoundingVolume, EnlargedBvh};
-use common::Aabb;
 use nalgebra as na;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 
-use crate::common::rand_vec3;
+use aabb::Aabb;
+use rand_vec3::rand_vec3;
 
 #[test]
 fn test() {
@@ -29,7 +32,7 @@ fn test() {
 
     let mut aabbs: Vec<Aabb> = Vec::new();
 
-    for i in 0..300 {
+    for i in 0..1000 {
         let aabb = rand_aabb();
         aabbs.push(aabb);
         bvh.insert_leaf(aabb, i);
@@ -37,7 +40,7 @@ fn test() {
 
     let mut intersection_bf: HashSet<usize> = HashSet::new();
     let mut intersection_bvh: HashSet<usize> = HashSet::new();
-    for _ in 0..100 {
+    for _ in 0..300 {
         let aabb = rand_aabb();
 
         aabbs.iter().enumerate().for_each(|(index, other)| {

@@ -1,3 +1,8 @@
+#[path = "../common/aabb.rs"]
+mod aabb;
+#[path = "../common/rand_vec3.rs"]
+mod rand_vec3;
+
 use std::hint::black_box;
 
 use bvh::{BoundingVolume, EnlargedBvh};
@@ -6,10 +11,8 @@ use nalgebra as na;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
-use crate::common::{Aabb, rand_vec3};
-
-#[path = "../tests/common.rs"]
-mod common;
+use aabb::Aabb;
+use rand_vec3::rand_vec3;
 
 fn for_in_size(size: na::Vector3<usize>, mut f: impl FnMut(na::Vector3<usize>)) {
     for z in 0..size.z {
@@ -83,7 +86,7 @@ fn regular_cube(c: &mut Criterion, a: usize) {
 
 fn regular_arrange(c: &mut Criterion) {
     regular_cube(c, 10);
-    regular_cube(c, 30);
+    regular_cube(c, 100);
 }
 
 criterion_group!(benches, regular_arrange);
