@@ -70,18 +70,18 @@ fn regular_cube(c: &mut Criterion, a: usize) {
         })
     });
 
-    c.bench_function(&format!("regular {}^3 bf", a), |b| {
-        let mut i = 0;
-        b.iter(|| {
-            i = (i + 1) % samples.len();
-            let aabb = samples[i];
-            list.iter().enumerate().for_each(|(id, other)| {
-                if aabb.intersects(other) {
-                    black_box(id);
-                }
-            });
-        })
-    });
+    // c.bench_function(&format!("regular {}^3 bf", a), |b| {
+    //     let mut i = 0;
+    //     b.iter(|| {
+    //         i = (i + 1) % samples.len();
+    //         let aabb = samples[i];
+    //         list.iter().enumerate().for_each(|(id, other)| {
+    //             if aabb.intersects(other) {
+    //                 black_box(id);
+    //             }
+    //         });
+    //     })
+    // });
 }
 
 fn regular_arrange(c: &mut Criterion) {

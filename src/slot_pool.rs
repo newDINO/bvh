@@ -94,6 +94,14 @@ impl<T> SlotPool<T> {
     pub fn get(&self, handle: SlotPoolHandle) -> Option<&T> {
         self.slots.get(handle.as_usize())?.as_ref()
     }
+    pub unsafe fn get_unchecked(&self, handle: SlotPoolHandle) -> &T {
+        unsafe {
+            self.slots
+                .get_unchecked(handle.as_usize())
+                .as_ref()
+                .unwrap_unchecked()
+        }
+    }
 
     pub fn get_mut(&mut self, handle: SlotPoolHandle) -> Option<&mut T> {
         self.slots.get_mut(handle.as_usize())?.as_mut()

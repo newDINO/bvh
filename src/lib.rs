@@ -80,11 +80,9 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
     pub fn find_intersecting_leafs(&self, bounding_volume: B, mut f: impl FnMut(D)) {
-        if self.root_index == NodeIndex::NULL {
-            return;
+        if self.root_index != NodeIndex::NULL {
+            self.find_intersecting_leafs_rec(self.root_index, bounding_volume, &mut f);
         }
-
-        self.find_intersecting_leafs_rec(self.root_index, bounding_volume, &mut f);
     }
     fn find_intersecting_leafs_rec(
         &self,
@@ -92,7 +90,12 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         bounding_volume: B,
         f: &mut impl FnMut(D),
     ) {
+        #[cfg(debug_assertions)]
         let node = &self.nodes[index.0];
+
+        // Safety: index passed to this function is either root or child index.
+        #[cfg(not(debug_assertions))]
+        let node = unsafe { self.nodes.get_unchecked(index.0) };
 
         if bounding_volume.intersects(&node.bounding_volume) {
             match node.ty {
@@ -181,7 +184,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             } else if *child2 == best_sibling {
                 *child2 = new_parent_index;
             } else {
-                unreachable!("");
+                unreachable!();
             }
         }
 
