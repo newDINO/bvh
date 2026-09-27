@@ -14,7 +14,7 @@ use aabb::Aabb;
 use rand_vec3::rand_vec3;
 
 #[test]
-fn test() {
+fn query_fuzz() {
     let min_start = na::Vector3::new(-11.0, -11.3, -9.8);
     let max_start = na::Vector3::new(5.6, 9.7, 4.2);
 

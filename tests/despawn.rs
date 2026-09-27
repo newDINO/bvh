@@ -14,7 +14,7 @@ use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
 #[test]
-fn fuzz() {
+fn despawn_fuzz() {
     let mut id: usize = 0;
 
     let mut aabbs: HashMap<usize, (Aabb, NodeIndex)> = HashMap::new();
