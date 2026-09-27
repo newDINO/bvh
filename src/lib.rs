@@ -91,6 +91,17 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         node
     }
 
+    // #[inline]
+    // unsafe fn get_node_cfg_mut(&mut self, index: NodeIndex) -> &mut Node<B, D> {
+    //     #[cfg(debug_assertions)]
+    //     let node = self.nodes.get_mut(index.0).unwrap();
+
+    //     #[cfg(not(debug_assertions))]
+    //     let node = unsafe { self.nodes.get_unchecked_mut(index.0) };
+
+    //     node
+    // }
+
     /// Performance compared to [`Self::query_intersection`]
     /// (tested on my device, use `cargo bench --bench query` to test it on your device):
     /// - Basically the same when there are 1K leaves.
