@@ -72,6 +72,10 @@ fn fuzz() {
                     intersection_bvh.insert(index);
                 }
             });
+
+            assert_eq!(intersection_bf, intersection_bvh);
+            intersection_bf.clear();
+            intersection_bvh.clear();
         }
     }
 }
@@ -141,5 +145,8 @@ fn remove_all() {
                 intersection_bvh.insert(index);
             }
         });
+        assert_eq!(intersection_bf, intersection_bvh);
+        intersection_bf.clear();
+        intersection_bvh.clear();
     }
 }
