@@ -271,6 +271,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
+    #[inline]
     fn find_best_sibling(&self, bounding_volume: B) -> NodeIndex {
         let center = bounding_volume.center();
 
@@ -291,7 +292,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             .surface_area_heuristic();
 
         loop {
-            let node = self.nodes.get(index.0).unwrap();
+            let node = unsafe { self.get_node_cfg(index) };
             let NodeType::Internal {
                 child1: child1_index,
                 child2: child2_index,
@@ -309,8 +310,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 
             inherited_cost += direct_cost - area_base;
 
-            let child1 = self.nodes.get(child1_index.0).unwrap();
-            let child2 = self.nodes.get(child2_index.0).unwrap();
+            let child1 = unsafe { self.get_node_cfg(child1_index) };
+            let child2 = unsafe { self.get_node_cfg(child2_index) };
 
             let leaf1 = child1.ty.is_leaf();
             let leaf2 = child2.ty.is_leaf();
