@@ -4,7 +4,7 @@ use slot_pool::{SlotPool, SlotPoolHandle};
 use std::fmt::Debug;
 
 pub trait BoundingVolume {
-    type Point: Vec3;
+    type Point: Point;
     fn intersects(&self, other: &Self) -> bool;
     fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
@@ -13,7 +13,7 @@ pub trait BoundingVolume {
     fn center(&self) -> Self::Point;
 }
 
-pub trait Vec3 {
+pub trait Point {
     fn distance_heuristic(&self, other: &Self) -> f32;
 }
 

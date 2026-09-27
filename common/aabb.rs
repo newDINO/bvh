@@ -1,4 +1,4 @@
-use bvh::{BoundingVolume, Vec3};
+use bvh::{BoundingVolume, Point};
 use nalgebra as na;
 
 #[derive(Clone, Copy, Debug)]
@@ -32,7 +32,7 @@ impl Aabb {
 
 pub struct AabbPoint(na::Vector3<f32>);
 
-impl Vec3 for AabbPoint {
+impl Point for AabbPoint {
     #[inline]
     fn distance_heuristic(&self, other: &Self) -> f32 {
         (self.0 - other.0).norm_squared()
