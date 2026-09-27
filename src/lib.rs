@@ -71,6 +71,11 @@ pub struct Bvh<B, D> {
     root_index: NodeIndex,
     nodes: SlotPool<Node<B, D>>,
 }
+impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Default for Bvh<B, D> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     pub fn new() -> Self {
@@ -93,7 +98,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 
     /// Performance compared to [`Self::query_intersection`]
     /// (tested on my device, use `cargo bench --bench query` to test it on your device):
-    /// - Basically the same when there are 1K leaves.
+    /// - Basically the same or about 5% worse when there are 1K leaves.
     /// - 10% improvement when there are 1M leaves.
     #[inline]
     pub fn query_intersection_stack(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
@@ -181,7 +186,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             let node = Node {
                 ty: NodeType::Leaf(entity),
                 parent_index: NodeIndex::NULL,
-                bounding_volume: bounding_volume,
+                bounding_volume,
             };
             let index = NodeIndex(self.nodes.insert(node));
             self.root_index = index;
@@ -221,7 +226,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         let new_leaf = Node {
             ty: NodeType::Leaf(entity),
             parent_index: new_parent_index,
-            bounding_volume: bounding_volume,
+            bounding_volume,
         };
 
         if old_parent_index == NodeIndex::NULL {
@@ -354,7 +359,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                 break;
             }
 
-            let (lower_cost1, lower_cost2) = if lower_cost1 == lower_cost2 && leaf1 == false {
+            let (lower_cost1, lower_cost2) = if lower_cost1 == lower_cost2 && !leaf1 {
                 core::hint::cold_path();
 
                 debug_assert!(lower_cost1 < f32::MAX);
@@ -368,7 +373,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                 (lower_cost1, lower_cost2)
             };
 
-            if lower_cost1 < lower_cost2 && leaf1 == false {
+            if lower_cost1 < lower_cost2 && !leaf1 {
                 index = child1_index;
                 area_base = area1;
                 direct_cost = direct_cost1;

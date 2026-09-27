@@ -28,7 +28,7 @@ mod handle {
         #[inline]
         pub(super) fn from_usize(index: usize) -> Option<Self> {
             let index = index as u32;
-            if index >= u32::MAX {
+            if index == u32::MAX {
                 None
             } else {
                 Some(Self(index))
