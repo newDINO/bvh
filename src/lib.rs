@@ -101,6 +101,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             return;
         }
 
+        // SAFETY: self.root_index is valid as long as it is not NULL.
         let root = unsafe { self.get_node_cfg(self.root_index) };
 
         if q.intersects(&root.bounding_volume) {
@@ -133,6 +134,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             return;
         }
 
+        // SAFETY: self.root_index is valid as long as it is not NULL.
         let root = unsafe { self.get_node_cfg(self.root_index) };
 
         if q.intersects(&root.bounding_volume) {
