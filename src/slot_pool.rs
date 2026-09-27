@@ -104,7 +104,7 @@ impl<T> SlotPool<T> {
     }
 
     #[cfg(not(debug_assertions))]
-    #[inline(always)]
+    #[inline]
     pub unsafe fn get_unchecked(&self, handle: SlotPoolHandle) -> &T {
         unsafe {
             self.slots
@@ -117,17 +117,6 @@ impl<T> SlotPool<T> {
     #[inline]
     pub fn get_mut(&mut self, handle: SlotPoolHandle) -> Option<&mut T> {
         self.slots.get_mut(handle.as_usize())?.as_mut()
-    }
-
-    #[cfg(not(debug_assertions))]
-    #[inline(always)]
-    pub unsafe fn get_unchecked_mut(&mut self, handle: SlotPoolHandle) -> &mut T {
-        unsafe {
-            self.slots
-                .get_unchecked_mut(handle.as_usize())
-                .as_mut()
-                .unwrap_unchecked()
-        }
     }
 
     #[inline]
