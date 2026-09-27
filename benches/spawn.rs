@@ -37,6 +37,7 @@ fn regular_cube(a: usize, c: &mut Criterion) {
 }
 
 fn regular(c: &mut Criterion) {
+    regular_cube(3, c);
     regular_cube(10, c);
     regular_cube(15, c);
 }

@@ -232,12 +232,19 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 
             let (child1, child2) = old_parent.ty.as_internal_mut();
 
+            #[cfg(debug_assertions)]
             if *child1 == best_sibling {
                 *child1 = new_parent_index;
             } else if *child2 == best_sibling {
                 *child2 = new_parent_index;
             } else {
                 unreachable!();
+            }
+            #[cfg(not(debug_assertions))]
+            if *child1 == best_sibling {
+                *child1 = new_parent_index;
+            } else {
+                *child2 = new_parent_index;
             }
         }
 
