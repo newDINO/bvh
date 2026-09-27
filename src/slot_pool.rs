@@ -119,6 +119,17 @@ impl<T> SlotPool<T> {
         self.slots.get_mut(handle.as_usize())?.as_mut()
     }
 
+    // #[cfg(not(debug_assertions))]
+    // #[inline]
+    // pub unsafe fn get_unchecked_mut(&mut self, handle: SlotPoolHandle) -> &mut T {
+    //     unsafe {
+    //         self.slots
+    //             .get_unchecked_mut(handle.as_usize())
+    //             .as_mut()
+    //             .unwrap_unchecked()
+    //     }
+    // }
+
     #[inline]
     pub fn remove(&mut self, handle: SlotPoolHandle) -> Option<T> {
         if let Some(slot) = self.slots.get_mut(handle.as_usize()) {
