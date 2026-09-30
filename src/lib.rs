@@ -1,4 +1,4 @@
-//! A dynamic bvh with generic [`BoundingVolume`].
+//! A dynamic bvh with generic [`BoundingVolume`] and zero dependencies.
 //!
 //! The algorithm is from dynamic_tree.c of [box2d](https://github.com/erincatto/box2d) (with some modifications).
 //!
@@ -32,13 +32,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+mod ray_cast;
 mod slot_pool;
+
+pub use ray_cast::RayCast;
 
 use slot_pool::{SlotPool, SlotPoolHandle};
 use std::fmt::Debug;
 
 pub trait BoundingVolume {
-    type Point: Point;
+    type Point: Vector;
     fn intersects(&self, other: &Self) -> bool;
     fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
@@ -47,7 +50,7 @@ pub trait BoundingVolume {
     fn center(&self) -> Self::Point;
 }
 
-pub trait Point {
+pub trait Vector {
     fn distance_heuristic(&self, other: &Self) -> f32;
 }
 
