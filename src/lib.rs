@@ -1,4 +1,4 @@
-//! A dynamic bvh with generic [`BoundingVolume`] and zero dependencies.
+//! A dynamic bvh using generic [`BoundingVolume`] with zero dependencies.
 //!
 //! The algorithm is from dynamic_tree.c of [box2d](https://github.com/erincatto/box2d) (with some modifications).
 //!
@@ -6,7 +6,8 @@
 //! See user guide for how to use this crate with a specific bounding volume implementation.
 //!
 //! A bvh is a data structure for accelerating various spatial queries such as ray casting, intersection test, etc.
-//! This crate is about ? times faster than brute search when there are 1K object, and about 1000 times faster when there are 1M object.
+//! Bvh intersection test is about 7 times faster than brute search when there are 1K object,
+//! and about 1000 times faster when there are 1M object.
 
 // Original license of box2d:
 //
@@ -40,17 +41,34 @@ pub use ray_cast::RayCast;
 use slot_pool::{SlotPool, SlotPoolHandle};
 use std::fmt::Debug;
 
+/// A basic trait for a bounding volume.
+///
+/// See [aabb.rs](https://github.com/newDINO/bvh/blob/main/common/aabb.rs)
+/// for an AABB example based on [`nalgebra`](https://docs.rs/nalgebra/latest/nalgebra/).
 pub trait BoundingVolume {
     type Point: Vector;
     fn intersects(&self, other: &Self) -> bool;
     fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
+
+    /// Returns a bounding volume that is larger than itself.
+    /// This is an optimization for dynamic bvh so that
+    /// when object moves, as long as the bounding volume is within the enlarged leaf bounding volume,
+    /// the leaf is not re-inserted.
     fn enlarge(&self, r: f32) -> Self;
+
+    /// Normally this is surface area of the bounding volume,
+    /// but you can also mulitply it by a coefficient.
+    /// For example, for sphere, the surface area is `4.0 * PI * r * r`,
+    /// but you can also return `r * r` here as an optimization.
     fn surface_area_heuristic(&self) -> f32;
+
     fn center(&self) -> Self::Point;
 }
 
 pub trait Vector {
+    /// Normally this is the Euclidean distance between two point,
+    /// but you can also returns the squared distance as an optimization.
     fn distance_heuristic(&self, other: &Self) -> f32;
 }
 
