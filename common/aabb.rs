@@ -90,7 +90,7 @@ impl RayCast for Aabb {
         let mut t_max = f32::MAX;
 
         for i in 0..3 {
-            if dir[i] < f32::EPSILON {
+            if dir[i].abs() < f32::EPSILON {
                 if origin[i] > self.max[i] || origin[i] < self.min[i] {
                     return None;
                 }
