@@ -8,7 +8,7 @@ pub trait RayCast {
     ///   is the entry parameter (or a lower bound of hit distances). Returns `None`
     ///   otherwise.
     /// * Only non-negative `t` values should be considered as valid hits.
-    fn ray_cast(&self, source: &Self::Vector, dir: &Self::Vector) -> Option<f32>;
+    fn ray_cast(&self, origin: &Self::Vector, dir: &Self::Vector) -> Option<f32>;
 }
 
 impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
@@ -17,18 +17,18 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
     ///
     /// # Parameters
     ///
-    /// * `source` — The origin of the ray.
+    /// * `origin` — The origin of the ray.
     /// * `dir` — The direction of the ray. **Note:** `dir` is not normalized
     ///   automatically.
     /// * `leaf_ray_cast_f` — A callback invoked for each leaf node that may
-    ///   contain a hit. It receives `(source, dir, leaf_data)` and must return
+    ///   contain a hit. It receives `(origin, dir, leaf_data)` and must return
     ///   `Some(t)` for a valid hit with `t >= 0`, or `None` if the ray does not
     ///   hit the leaf's contents. The returned `t` must be in the same parameter
     ///   space as the values returned by `B::ray_cast`.
     ///
     pub fn ray_cast(
         &self,
-        source: &V,
+        origin: &V,
         dir: &V,
         mut leaf_ray_cast_f: impl FnMut(&V, &V, &D) -> Option<f32>,
     ) -> Option<f32> {
@@ -37,8 +37,8 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
         }
         let root = &self.nodes[self.root_index.0];
 
-        if root.bounding_volume.ray_cast(source, dir).is_some() {
-            self.ray_cast_rec(self.root_index, source, dir, &mut leaf_ray_cast_f)
+        if root.bounding_volume.ray_cast(origin, dir).is_some() {
+            self.ray_cast_rec(self.root_index, origin, dir, &mut leaf_ray_cast_f)
         } else {
             None
         }
@@ -47,25 +47,25 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
     fn ray_cast_rec(
         &self,
         index: NodeIndex,
-        source: &V,
+        origin: &V,
         dir: &V,
         leaf_ray_cast_f: &mut impl FnMut(&V, &V, &D) -> Option<f32>,
     ) -> Option<f32> {
         let node = &self.nodes[index.0];
 
         match &node.ty {
-            NodeType::Leaf(data) => leaf_ray_cast_f(source, dir, data),
+            NodeType::Leaf(data) => leaf_ray_cast_f(origin, dir, data),
             NodeType::Internal { child1, child2 } => {
                 let node1 = &self.nodes[child1.0];
-                let cast1 = node1.bounding_volume.ray_cast(source, dir);
+                let cast1 = node1.bounding_volume.ray_cast(origin, dir);
 
                 let node2 = &self.nodes[child2.0];
-                let cast2 = node2.bounding_volume.ray_cast(source, dir);
+                let cast2 = node2.bounding_volume.ray_cast(origin, dir);
 
                 match (cast1, cast2) {
                     (None, None) => None,
-                    (Some(_), None) => self.ray_cast_rec(*child1, source, dir, leaf_ray_cast_f),
-                    (None, Some(_)) => self.ray_cast_rec(*child2, source, dir, leaf_ray_cast_f),
+                    (Some(_), None) => self.ray_cast_rec(*child1, origin, dir, leaf_ray_cast_f),
+                    (None, Some(_)) => self.ray_cast_rec(*child2, origin, dir, leaf_ray_cast_f),
                     (Some(r1), Some(r2)) => {
                         let (ia, ib, rb) = if r1 <= r2 {
                             (*child1, *child2, r2)
@@ -73,13 +73,13 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
                             (*child2, *child1, r1)
                         };
 
-                        let cast_a = self.ray_cast_rec(ia, source, dir, leaf_ray_cast_f);
+                        let cast_a = self.ray_cast_rec(ia, origin, dir, leaf_ray_cast_f);
                         if let Some(ra_inner) = cast_a {
                             let r = if ra_inner <= rb {
                                 // ra_inner is smaller than or equal to the smallest distance of ray casting on another branch.
                                 ra_inner
                             } else {
-                                let cast_b = self.ray_cast_rec(ib, source, dir, leaf_ray_cast_f);
+                                let cast_b = self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f);
                                 if let Some(rb_inner) = cast_b {
                                     if ra_inner <= rb_inner {
                                         ra_inner
@@ -92,7 +92,7 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
                             };
                             Some(r)
                         } else {
-                            self.ray_cast_rec(ib, source, dir, leaf_ray_cast_f)
+                            self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f)
                         }
                     }
                 }
