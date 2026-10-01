@@ -38,11 +38,19 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
         }
         let root = &self.nodes[self.root_index.0];
 
+        let mut result = None;
+
         if root.bounding_volume.ray_cast(origin, dir).is_some() {
-            self.ray_cast_rec(self.root_index, origin, dir, &mut leaf_ray_cast_f)
-        } else {
-            None
+            self.ray_cast_rec(
+                self.root_index,
+                origin,
+                dir,
+                &mut leaf_ray_cast_f,
+                &mut result,
+            )
         }
+
+        result
     }
 
     fn ray_cast_rec(
@@ -51,11 +59,20 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
         origin: &V,
         dir: &V,
         leaf_ray_cast_f: &mut impl FnMut(&V, &V, &D) -> Option<f32>,
-    ) -> Option<f32> {
+        result: &mut Option<f32>,
+    ) {
         let node = &self.nodes[index.0];
 
+        let result_compare = if let Some(t) = result { *t } else { f32::MAX };
+
         match &node.ty {
-            NodeType::Leaf(data) => leaf_ray_cast_f(origin, dir, data),
+            NodeType::Leaf(data) => {
+                if let Some(t) = leaf_ray_cast_f(origin, dir, data) {
+                    if t < result_compare {
+                        *result = Some(t);
+                    }
+                }
+            }
             NodeType::Internal { child1, child2 } => {
                 let node1 = &self.nodes[child1.0];
                 let cast1 = node1.bounding_volume.ray_cast(origin, dir);
@@ -64,36 +81,29 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
                 let cast2 = node2.bounding_volume.ray_cast(origin, dir);
 
                 match (cast1, cast2) {
-                    (None, None) => None,
-                    (Some(_), None) => self.ray_cast_rec(*child1, origin, dir, leaf_ray_cast_f),
-                    (None, Some(_)) => self.ray_cast_rec(*child2, origin, dir, leaf_ray_cast_f),
-                    (Some(r1), Some(r2)) => {
-                        let (ia, ib, rb) = if r1 <= r2 {
-                            (*child1, *child2, r2)
+                    (None, None) => {}
+                    (Some(t), None) => {
+                        if t < result_compare {
+                            self.ray_cast_rec(*child1, origin, dir, leaf_ray_cast_f, result);
+                        }
+                    }
+                    (None, Some(t)) => {
+                        if t < result_compare {
+                            self.ray_cast_rec(*child2, origin, dir, leaf_ray_cast_f, result);
+                        }
+                    }
+                    (Some(t1), Some(t2)) => {
+                        let (ia, ta, ib, tb) = if t1 <= t2 {
+                            (*child1, t1, *child2, t2)
                         } else {
-                            (*child2, *child1, r1)
+                            (*child2, t2, *child1, t1)
                         };
+                        if ta < result_compare {
+                            self.ray_cast_rec(ia, origin, dir, leaf_ray_cast_f, result);
 
-                        let cast_a = self.ray_cast_rec(ia, origin, dir, leaf_ray_cast_f);
-                        if let Some(ra_inner) = cast_a {
-                            let r = if ra_inner <= rb {
-                                // ra_inner is smaller than or equal to the smallest distance of ray casting on another branch.
-                                ra_inner
-                            } else {
-                                let cast_b = self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f);
-                                if let Some(rb_inner) = cast_b {
-                                    if ra_inner <= rb_inner {
-                                        ra_inner
-                                    } else {
-                                        rb_inner
-                                    }
-                                } else {
-                                    ra_inner
-                                }
-                            };
-                            Some(r)
-                        } else {
-                            self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f)
+                            if result.map_or(true, |t| tb < t) {
+                                self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f, result);
+                            }
                         }
                     }
                 }
