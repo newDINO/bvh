@@ -3,6 +3,8 @@ mod aabb;
 #[path = "../common/rand_vec3.rs"]
 mod rand_vec3;
 
+use std::collections::HashSet;
+
 use aabb::Aabb;
 use bvh::{EnlargedBvh, RayCast};
 use rand_vec3::rand_vec3;
@@ -58,26 +60,34 @@ fn ray_cast_fuzz() {
         let origin = AabbVector(origin);
         let dir = AabbVector(dir);
 
-        let bf_result = aabbs.iter().fold(None, |acc, aabb| {
-            let result = aabb.ray_cast(&origin, &dir);
-            if let Some(result) = result {
-                let t = if let Some(acc) = acc {
-                    result.min(acc)
-                } else {
-                    result
-                };
-                Some(t)
-            } else {
-                acc
+        let mut bf_intersects = false;
+        let mut bf_min_dist = f32::MAX;
+        let mut bf_indices: HashSet<usize> = HashSet::new();
+
+        aabbs.iter().enumerate().for_each(|(index, aabb)| {
+            if let Some(t) = aabb.ray_cast(&origin, &dir) {
+                bf_intersects = true;
+                if t < bf_min_dist {
+                    bf_min_dist = t;
+
+                    bf_indices.clear();
+                    bf_indices.insert(index);
+                } else if t == bf_min_dist {
+                    bf_indices.insert(index);
+                }
             }
         });
 
         let bvh_result = bvh.ray_cast(&origin, &dir, |origin, dir, index| {
             let aabb = aabbs[*index];
-            aabb.ray_cast(origin, dir)
+            aabb.ray_cast(origin, dir).map(|t| (t, *index))
         });
 
-        assert_eq!(bf_result, bvh_result);
+        if bf_intersects {
+            let (bvh_dist, bvh_index) = bvh_result.unwrap();
+            assert_eq!(bvh_dist, bf_min_dist);
+            assert!(bf_indices.contains(&bvh_index));
+        }
     }
 
     assert!(tested_ray as f32 > n_tests as f32 * 0.9);

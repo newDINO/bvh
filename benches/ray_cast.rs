@@ -63,7 +63,7 @@ fn ray_cast(c: &mut Criterion) {
                 &AabbVector(dir),
                 |origin, dir, index| {
                     let aabb = aabbs[*index];
-                    aabb.ray_cast(origin, dir)
+                    aabb.ray_cast(origin, dir).map(|t| (t, ()))
                 },
             );
             core::hint::black_box(result);

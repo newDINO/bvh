@@ -22,17 +22,18 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
     ///   automatically.
     /// * `leaf_ray_cast_f` — A callback invoked for each leaf node that may
     ///   contain a hit. It receives `(origin, dir, leaf_data)` and must return
-    ///   `Some(t)` for a valid hit with `t >= 0`, or `None` if the ray does not
+    ///   `Some((t, custom_data))` for a valid hit with `t >= 0`, or `None` if the ray does not
     ///   hit the leaf's contents. The returned `t` must be in the same parameter
     ///   space as the values returned by `B::ray_cast`.
+    ///   `custom_data: R` can be any desire data, e.g. `()`, normal of the intersecting face, index of the entity.
     ///
     #[inline]
-    pub fn ray_cast(
+    pub fn ray_cast<R>(
         &self,
         origin: &V,
         dir: &V,
-        mut leaf_ray_cast_f: impl FnMut(&V, &V, &D) -> Option<f32>,
-    ) -> Option<f32> {
+        mut leaf_ray_cast_f: impl FnMut(&V, &V, &D) -> Option<(f32, R)>,
+    ) -> Option<(f32, R)> {
         if self.root_index == NodeIndex::NULL {
             return None;
         }
@@ -53,23 +54,27 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
         result
     }
 
-    fn ray_cast_rec(
+    fn ray_cast_rec<R>(
         &self,
         index: NodeIndex,
         origin: &V,
         dir: &V,
-        leaf_ray_cast_f: &mut impl FnMut(&V, &V, &D) -> Option<f32>,
-        result: &mut Option<f32>,
+        leaf_ray_cast_f: &mut impl FnMut(&V, &V, &D) -> Option<(f32, R)>,
+        result: &mut Option<(f32, R)>,
     ) {
         let node = &self.nodes[index.0];
 
-        let result_compare = if let Some(t) = result { *t } else { f32::MAX };
+        let result_compare = if let Some((t, _)) = result {
+            *t
+        } else {
+            f32::MAX
+        };
 
         match &node.ty {
             NodeType::Leaf(data) => {
-                if let Some(t) = leaf_ray_cast_f(origin, dir, data) {
+                if let Some((t, r)) = leaf_ray_cast_f(origin, dir, data) {
                     if t < result_compare {
-                        *result = Some(t);
+                        *result = Some((t, r));
                     }
                 }
             }
@@ -101,7 +106,11 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
                         if ta < result_compare {
                             self.ray_cast_rec(ia, origin, dir, leaf_ray_cast_f, result);
 
-                            if result.map_or(true, |t| tb < t) {
+                            if let Some((t, _)) = result {
+                                if tb < *t {
+                                    self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f, result);
+                                }
+                            } else {
                                 self.ray_cast_rec(ib, origin, dir, leaf_ray_cast_f, result);
                             }
                         }
@@ -114,12 +123,12 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
 
 impl<V: Vector, B: RayCast<Vector = V>, D> EnlargedBvh<B, D> {
     #[inline]
-    pub fn ray_cast(
+    pub fn ray_cast<R>(
         &self,
         origin: &V,
         dir: &V,
-        leaf_ray_cast_f: impl FnMut(&V, &V, &D) -> Option<f32>,
-    ) -> Option<f32> {
+        leaf_ray_cast_f: impl FnMut(&V, &V, &D) -> Option<(f32, R)>,
+    ) -> Option<(f32, R)> {
         self.bvh.ray_cast(origin, dir, leaf_ray_cast_f)
     }
 }
