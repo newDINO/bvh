@@ -25,7 +25,7 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
     ///   `Some((t, custom_data))` for a valid hit with `t >= 0`, or `None` if the ray does not
     ///   hit the leaf's contents. The returned `t` must be in the same parameter
     ///   space as the values returned by `B::ray_cast`.
-    ///   `custom_data: R` can be any desire data, e.g. `()`, normal of the intersecting face, index of the entity.
+    ///   `custom_data: R` can be any desired data, e.g. `()`, normal of the intersecting face, index of the entity.
     ///
     #[inline]
     pub fn ray_cast<R>(
