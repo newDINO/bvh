@@ -1,4 +1,4 @@
-use crate::{Bvh, NodeIndex, NodeType, Vector};
+use crate::{Bvh, EnlargedBvh, NodeIndex, NodeType, Vector};
 
 /// A trait for types that can perform ray casting against a bounding volume.
 pub trait RayCast {
@@ -98,5 +98,16 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
                 }
             }
         }
+    }
+}
+
+impl<V: Vector, B: RayCast<Vector = V>, D> EnlargedBvh<B, D> {
+    pub fn ray_cast(
+        &self,
+        origin: &V,
+        dir: &V,
+        leaf_ray_cast_f: impl FnMut(&V, &V, &D) -> Option<f32>,
+    ) -> Option<f32> {
+        self.bvh.ray_cast(origin, dir, leaf_ray_cast_f)
     }
 }

@@ -30,7 +30,7 @@ impl Aabb {
     }
 }
 
-pub struct AabbVector(na::Vector3<f32>);
+pub struct AabbVector(pub na::Vector3<f32>);
 
 impl Vector for AabbVector {
     #[inline]
