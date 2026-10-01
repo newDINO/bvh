@@ -63,26 +63,40 @@ fn regular_cube(c: &mut Criterion, a: usize) {
         let mut query_stack = Vec::with_capacity(16);
 
         b.iter(|| {
-            i = (i + 1) % samples.len();
             let aabb = samples[i];
             bvh.query_intersection_stack(&mut query_stack, aabb, |id| {
                 if aabb.intersects(&list[id]) {
                     black_box(id);
                 }
             });
+            i = (i + 1) % samples.len();
         });
     });
     c.bench_function(&format!("bvh regular {}^3", a), |b| {
         let mut i = 0;
 
         b.iter(|| {
-            i = (i + 1) % samples.len();
             let aabb = samples[i];
             bvh.query_intersection(aabb, |id| {
                 if aabb.intersects(&list[id]) {
                     black_box(id);
                 }
             });
+            i = (i + 1) % samples.len();
+        });
+    });
+    c.bench_function(&format!("bf regular {}^3", a), |b| {
+        let mut i = 0;
+        b.iter(|| {
+            let aabb = samples[i];
+
+            list.iter().enumerate().for_each(|(index, other)| {
+                if aabb.intersects(other) {
+                    black_box(index);
+                }
+            });
+
+            i = (i + 1) % samples.len();
         });
     });
 }
