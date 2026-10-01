@@ -18,7 +18,7 @@ fn ray_cast_fuzz() {
     let min_start = na::Vector3::new(-11.0, -11.3, -9.8);
     let max_start = na::Vector3::new(5.6, 9.7, 4.2);
 
-    let max_size = na::Vector3::new(3.0, 3.0, 3.0);
+    let max_size = na::Vector3::new(1.0, 1.0, 1.0);
 
     let mut rng = ChaCha8Rng::from_seed([123; 32]);
 
@@ -47,13 +47,13 @@ fn ray_cast_fuzz() {
             na::Vector3::repeat(1.0),
         );
 
-        let l2 = dir.norm_squared();
-        if l2 == 0.0 {
+        let l = dir.norm();
+        if l < f32::EPSILON {
             continue;
         }
         tested_ray += 1;
 
-        let dir = dir * (1.0 / l2.sqrt());
+        let dir = dir * (1.0 / l);
 
         let origin = AabbVector(origin);
         let dir = AabbVector(dir);

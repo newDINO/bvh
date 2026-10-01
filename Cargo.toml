@@ -25,3 +25,7 @@ harness = false
 [[bench]]
 name = "sphere"
 harness = false
+
+[[bench]]
+name = "ray_cast"
+harness = false

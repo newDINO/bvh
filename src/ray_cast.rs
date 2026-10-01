@@ -26,6 +26,7 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
     ///   hit the leaf's contents. The returned `t` must be in the same parameter
     ///   space as the values returned by `B::ray_cast`.
     ///
+    #[inline]
     pub fn ray_cast(
         &self,
         origin: &V,
@@ -102,6 +103,7 @@ impl<V: Vector, B: RayCast<Vector = V>, D> Bvh<B, D> {
 }
 
 impl<V: Vector, B: RayCast<Vector = V>, D> EnlargedBvh<B, D> {
+    #[inline]
     pub fn ray_cast(
         &self,
         origin: &V,
