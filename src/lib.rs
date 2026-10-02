@@ -135,13 +135,13 @@ pub struct Bvh<B, D> {
     root_index: NodeIndex,
     nodes: SlotPool<Node<B, D>>,
 }
-impl<B: BoundingVolume + Debug, D: Debug> Default for Bvh<B, D> {
+impl<B: BoundingVolume, D> Default for Bvh<B, D> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<B: BoundingVolume + Debug, D: Debug> Bvh<B, D> {
+impl<B: BoundingVolume, D> Bvh<B, D> {
     pub fn new() -> Self {
         Self {
             root_index: NodeIndex::NULL,
@@ -327,10 +327,16 @@ impl<B: BoundingVolume + Debug, D: Debug> Bvh<B, D> {
             }
         }
 
-        self.nodes
+        if self
+            .nodes
             .insert_at(new_parent, new_parent_index.0)
-            .unwrap();
-        self.nodes.insert_at(new_leaf, leaf_index.0).unwrap();
+            .is_err()
+        {
+            panic!("Inserting new_parent failed.");
+        }
+        if self.nodes.insert_at(new_leaf, leaf_index.0).is_err() {
+            panic!("Inserting new_leaf failed")
+        }
 
         // Stage 3: walk back up the tree refitting AABBs
         let mut index = self.nodes.get(leaf_index.0).unwrap().parent_index;
@@ -750,7 +756,7 @@ pub struct EnlargedBvh<B, D> {
     bvh: Bvh<B, D>,
     enlargement: f32,
 }
-impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
+impl<B: BoundingVolume, D> EnlargedBvh<B, D> {
     pub fn new(enlargement: f32) -> Self {
         Self {
             bvh: Bvh::new(),
