@@ -6,8 +6,9 @@
 //! See user [`guide`] for how to use this crate with a specific bounding volume implementation.
 //!
 //! A bvh is a data structure for accelerating various spatial queries such as ray casting, intersection test, etc.
-//! Bvh intersection test is about 7 times faster than brute force search when there are 1K object,
-//! and about 1000 times faster when there are 1M object.
+//! Bvh intersection test is about 7 times faster than brute force search when there are 1K objects,
+//! and about 1000 times faster when there are 1M objects.
+//! Bvh ray cast is about 10 times faster than brute force method with 1000 objects.
 
 // Original license of box2d:
 //
@@ -123,6 +124,14 @@ pub struct Node<B, D> {
 }
 
 /// A generic bounding volume hierarchy.
+///
+/// `B` is the type of the [`BoundingVolume`].
+///
+/// `D` is the type for user data stored in each leaf.
+/// `D` should be small because its size affects the size of both leaf [`Node`] and internal [`Node`].
+/// For example, it can be used to store the index of an object, entity id, or a pointer to a geometry.
+///
+/// Currently, using [`Bvh`] requires both `B` and `D` to implement [`Copy`].
 #[derive(Debug)]
 pub struct Bvh<B, D> {
     root_index: NodeIndex,
@@ -191,7 +200,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                         stack.push(child2);
                     }
                 }
-                NodeType::Leaf(entity) => f(entity),
+                NodeType::Leaf(user_data) => f(user_data),
             }
         }
     }
@@ -225,7 +234,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                     self.query_intersection_rec(c2, q, f);
                 }
             }
-            NodeType::Leaf(entity) => f(entity),
+            NodeType::Leaf(user_data) => f(user_data),
         }
     }
 
@@ -235,19 +244,19 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 
     pub fn update_leaf(&mut self, index: NodeIndex, bounding_volume: B) {
         let leaf = &self.nodes[index.0];
-        let NodeType::Leaf(entity) = leaf.ty else {
+        let NodeType::Leaf(user_data) = leaf.ty else {
             unreachable!()
         };
         self.remove_leaf(index);
-        self.insert_leaf_at(bounding_volume, entity, index);
+        self.insert_leaf_at(bounding_volume, user_data, index);
     }
 
-    pub fn insert_leaf(&mut self, bounding_volume: B, entity: D) -> NodeIndex {
+    pub fn insert_leaf(&mut self, bounding_volume: B, user_data: D) -> NodeIndex {
         if self.root_index == NodeIndex::NULL {
             core::hint::cold_path();
 
             let node = Node {
-                ty: NodeType::Leaf(entity),
+                ty: NodeType::Leaf(user_data),
                 parent_index: NodeIndex::NULL,
                 bounding_volume,
             };
@@ -259,12 +268,12 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 
         let new_leaf_index = NodeIndex(self.nodes.allocate_slot());
 
-        self.insert_leaf_at(bounding_volume, entity, new_leaf_index);
+        self.insert_leaf_at(bounding_volume, user_data, new_leaf_index);
 
         new_leaf_index
     }
 
-    fn insert_leaf_at(&mut self, bounding_volume: B, entity: D, leaf_index: NodeIndex) {
+    fn insert_leaf_at(&mut self, bounding_volume: B, user_data: D, leaf_index: NodeIndex) {
         debug_assert_ne!(self.root_index, NodeIndex::NULL);
 
         // Stage 1: find the best sibling for the new leaf
@@ -287,7 +296,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             bounding_volume: bounding_volume.union(&sibling.bounding_volume),
         };
         let new_leaf = Node {
-            ty: NodeType::Leaf(entity),
+            ty: NodeType::Leaf(user_data),
             parent_index: new_parent_index,
             bounding_volume,
         };
@@ -726,6 +735,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 }
 
 /// A wrapper of [`Bvh`] that makes leaf bounding volume larger than object bounding volume.
+///
+/// See the documentation of [`Bvh`] and its methods for more details.
 #[derive(Debug)]
 pub struct EnlargedBvh<B, D> {
     bvh: Bvh<B, D>,
@@ -756,9 +767,9 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
     pub fn remove_leaf(&mut self, index: NodeIndex) {
         self.bvh.remove_leaf(index);
     }
-    pub fn insert_leaf(&mut self, bounding_volume: B, entity: D) -> NodeIndex {
+    pub fn insert_leaf(&mut self, bounding_volume: B, user_data: D) -> NodeIndex {
         self.bvh
-            .insert_leaf(bounding_volume.enlarge(self.enlargement), entity)
+            .insert_leaf(bounding_volume.enlarge(self.enlargement), user_data)
     }
     pub fn update_leaf(&mut self, index: NodeIndex, bounding_volume: B) {
         let node = &self.bvh.nodes[index.0];
