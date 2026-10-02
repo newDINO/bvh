@@ -1,12 +1,12 @@
 //! A dynamic bvh using generic [`BoundingVolume`] with zero dependencies.
 //!
-//! The algorithm is from dynamic_tree.c of [box2d](https://github.com/erincatto/box2d) (with some modifications).
+//! The algorithm is from `dynamic_tree.c` of [box2d](https://github.com/erincatto/box2d) (with some modifications).
 //!
 //! You may use it with whatever bounding volume you want: 3d AABB, 2d AABB, bounding sphere, etc.
-//! See user guide for how to use this crate with a specific bounding volume implementation.
+//! See user [`guide`] for how to use this crate with a specific bounding volume implementation.
 //!
 //! A bvh is a data structure for accelerating various spatial queries such as ray casting, intersection test, etc.
-//! Bvh intersection test is about 7 times faster than brute search when there are 1K object,
+//! Bvh intersection test is about 7 times faster than brute force search when there are 1K object,
 //! and about 1000 times faster when there are 1M object.
 
 // Original license of box2d:
@@ -33,6 +33,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+pub mod guide;
 mod ray_cast;
 mod slot_pool;
 
@@ -42,9 +43,7 @@ use slot_pool::{SlotPool, SlotPoolHandle};
 use std::fmt::Debug;
 
 /// A basic trait for a bounding volume.
-///
-/// See [aabb.rs](https://github.com/newDINO/bvh/blob/main/common/aabb.rs)
-/// for an AABB example based on [`nalgebra`](https://docs.rs/nalgebra/latest/nalgebra/).
+/// See [`guide`] for examples of how to implement this trait.
 pub trait BoundingVolume {
     type Point: Vector;
     fn intersects(&self, other: &Self) -> bool;
@@ -66,6 +65,8 @@ pub trait BoundingVolume {
     fn center(&self) -> Self::Point;
 }
 
+/// A basic trait for vectors.
+/// See [`guide`] for examples of how to implement this trait.
 pub trait Vector {
     /// Normally this is the Euclidean distance between two point,
     /// but you can also returns the squared distance as an optimization.
@@ -121,6 +122,7 @@ pub struct Node<B, D> {
     bounding_volume: B,
 }
 
+/// A generic bounding volume hierarchy.
 #[derive(Debug)]
 pub struct Bvh<B, D> {
     root_index: NodeIndex,
@@ -723,6 +725,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     }
 }
 
+/// A wrapper of [`Bvh`] that makes leaf bounding volume larger than object bounding volume.
 #[derive(Debug)]
 pub struct EnlargedBvh<B, D> {
     bvh: Bvh<B, D>,
