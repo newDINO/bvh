@@ -130,20 +130,18 @@ pub struct Node<B, D> {
 /// `D` is the type for user data stored in each leaf.
 /// `D` should be small because its size affects the size of both leaf [`Node`] and internal [`Node`].
 /// For example, it can be used to store the index of an object, entity id, or a pointer to a geometry.
-///
-/// Currently, using [`Bvh`] requires both `B` and `D` to implement [`Copy`].
 #[derive(Debug)]
 pub struct Bvh<B, D> {
     root_index: NodeIndex,
     nodes: SlotPool<Node<B, D>>,
 }
-impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Default for Bvh<B, D> {
+impl<B: BoundingVolume + Debug, D: Debug> Default for Bvh<B, D> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
+impl<B: BoundingVolume + Debug, D: Debug> Bvh<B, D> {
     pub fn new() -> Self {
         Self {
             root_index: NodeIndex::NULL,
@@ -173,7 +171,12 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     /// - 2% better when there are 1M leaves.
     ///
     #[inline(always)]
-    pub fn query_intersection_stack(&self, stack: &mut Vec<NodeIndex>, q: B, mut f: impl FnMut(D)) {
+    pub fn query_intersection_stack(
+        &self,
+        stack: &mut Vec<NodeIndex>,
+        q: B,
+        mut f: impl FnMut(&D),
+    ) {
         if self.root_index == NodeIndex::NULL {
             return;
         }
@@ -188,16 +191,16 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         while let Some(index) = stack.pop() {
             let node = unsafe { self.get_node_cfg(index) };
 
-            match node.ty {
+            match &node.ty {
                 NodeType::Internal { child1, child2 } => {
-                    let c1 = unsafe { self.get_node_cfg(child1) };
+                    let c1 = unsafe { self.get_node_cfg(*child1) };
                     if q.intersects(&c1.bounding_volume) {
-                        stack.push(child1);
+                        stack.push(*child1);
                     }
 
-                    let c2 = unsafe { self.get_node_cfg(child2) };
+                    let c2 = unsafe { self.get_node_cfg(*child2) };
                     if q.intersects(&c2.bounding_volume) {
-                        stack.push(child2);
+                        stack.push(*child2);
                     }
                 }
                 NodeType::Leaf(user_data) => f(user_data),
@@ -206,7 +209,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     }
 
     #[inline]
-    pub fn query_intersection(&self, q: B, mut f: impl FnMut(D)) {
+    pub fn query_intersection(&self, q: B, mut f: impl FnMut(&D)) {
         if self.root_index == NodeIndex::NULL {
             return;
         }
@@ -219,16 +222,16 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         }
     }
 
-    fn query_intersection_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(D)) {
-        match node.ty {
+    fn query_intersection_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(&D)) {
+        match &node.ty {
             NodeType::Internal { child1, child2 } => {
-                let c1 = unsafe { self.get_node_cfg(child1) };
+                let c1 = unsafe { self.get_node_cfg(*child1) };
 
                 if q.intersects(&c1.bounding_volume) {
                     self.query_intersection_rec(c1, q, f);
                 }
 
-                let c2 = unsafe { self.get_node_cfg(child2) };
+                let c2 = unsafe { self.get_node_cfg(*child2) };
 
                 if q.intersects(&c2.bounding_volume) {
                     self.query_intersection_rec(c2, q, f);
@@ -243,11 +246,10 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     // }
 
     pub fn update_leaf(&mut self, index: NodeIndex, bounding_volume: B) {
-        let leaf = &self.nodes[index.0];
-        let NodeType::Leaf(user_data) = leaf.ty else {
-            unreachable!()
+        let node = self.remove_leaf(index).unwrap();
+        let NodeType::Leaf(user_data) = node.ty else {
+            unreachable!("Node is not leaf")
         };
-        self.remove_leaf(index);
         self.insert_leaf_at(bounding_volume, user_data, index);
     }
 
@@ -277,7 +279,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         debug_assert_ne!(self.root_index, NodeIndex::NULL);
 
         // Stage 1: find the best sibling for the new leaf
-        let best_sibling = self.find_best_sibling(bounding_volume);
+        let best_sibling = self.find_best_sibling(&bounding_volume);
 
         // Stage 2: create a new parent
         let new_parent_index = NodeIndex(self.nodes.allocate_slot());
@@ -337,8 +339,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
             let parent_index = node.parent_index;
 
             let (child1, child2) = node.ty.as_internal();
-            let aabb1 = self.nodes.get(child1.0).unwrap().bounding_volume;
-            let aabb2 = self.nodes.get(child2.0).unwrap().bounding_volume;
+            let aabb1 = &self.nodes.get(child1.0).unwrap().bounding_volume;
+            let aabb2 = &self.nodes.get(child2.0).unwrap().bounding_volume;
 
             self.nodes.get_mut(index.0).unwrap().bounding_volume = aabb1.union(&aabb2);
 
@@ -349,7 +351,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
     }
 
     #[inline]
-    fn find_best_sibling(&self, bounding_volume: B) -> NodeIndex {
+    fn find_best_sibling(&self, bounding_volume: &B) -> NodeIndex {
         let center = bounding_volume.center();
 
         let area = bounding_volume.surface_area_heuristic();
@@ -479,7 +481,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         let child1 = &self.nodes[c1i];
         let child2 = &self.nodes[c2i];
 
-        match (child1.ty, child2.ty) {
+        match (&child1.ty, &child2.ty) {
             (NodeType::Leaf(_), NodeType::Leaf(_)) => {}
             (
                 NodeType::Leaf(_),
@@ -488,6 +490,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                     child2: grandchild4_index,
                 },
             ) => {
+                let grandchild3_index = *grandchild3_index;
+                let grandchild4_index = *grandchild4_index;
                 let (g3i, g4i) = (grandchild3_index.0, grandchild4_index.0);
 
                 let base_cost = child2.bounding_volume.surface_area_heuristic();
@@ -531,6 +535,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                 },
                 NodeType::Leaf(_),
             ) => {
+                let grandchild1_index = *grandchild1_index;
+                let grandchild2_index = *grandchild2_index;
                 let (g1i, g2i) = (grandchild1_index.0, grandchild2_index.0);
 
                 let base_cost = child1.bounding_volume.surface_area_heuristic();
@@ -636,7 +642,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                 match best_rotation {
                     RotationType::None => {}
                     RotationType::C1G3 => {
-                        *self.nodes[i].ty.as_internal_mut().0 = grandchild3_index;
+                        *self.nodes[i].ty.as_internal_mut().0 = *grandchild3_index;
                         *self.nodes[c2i].ty.as_internal_mut().0 = child1_index;
 
                         self.nodes[c1i].parent_index = child2_index;
@@ -645,7 +651,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                         self.nodes[c2i].bounding_volume = aabb_c1g4;
                     }
                     RotationType::C1G4 => {
-                        *self.nodes[i].ty.as_internal_mut().0 = grandchild4_index;
+                        *self.nodes[i].ty.as_internal_mut().0 = *grandchild4_index;
                         *self.nodes[c2i].ty.as_internal_mut().1 = child1_index;
 
                         self.nodes[c1i].parent_index = child2_index;
@@ -654,7 +660,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                         self.nodes[c2i].bounding_volume = aabb_c1g3;
                     }
                     RotationType::C2G1 => {
-                        *self.nodes[i].ty.as_internal_mut().1 = grandchild1_index;
+                        *self.nodes[i].ty.as_internal_mut().1 = *grandchild1_index;
                         *self.nodes[c1i].ty.as_internal_mut().0 = child2_index;
 
                         self.nodes[c2i].parent_index = child1_index;
@@ -663,7 +669,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
                         self.nodes[c1i].bounding_volume = aabb_c2g2;
                     }
                     RotationType::G2C2 => {
-                        *self.nodes[i].ty.as_internal_mut().1 = grandchild2_index;
+                        *self.nodes[i].ty.as_internal_mut().1 = *grandchild2_index;
                         *self.nodes[c1i].ty.as_internal_mut().1 = child2_index;
 
                         self.nodes[c2i].parent_index = child1_index;
@@ -680,8 +686,8 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         self.root_index
     }
 
-    pub fn remove_leaf(&mut self, index: NodeIndex) {
-        let node = &self.nodes[index.0];
+    pub fn remove_leaf(&mut self, index: NodeIndex) -> Option<Node<B, D>> {
+        let node = self.nodes.get(index.0)?;
 
         if node.ty.is_internal() {
             panic!("Node {:?} to be removed is not leaf!", index.0);
@@ -690,7 +696,7 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
         if index == self.root_index() {
             self.root_index = NodeIndex::NULL;
             self.nodes.remove(index.0);
-            return;
+            return None;
         }
 
         let parent_index = node.parent_index;
@@ -729,8 +735,10 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> Bvh<B, D> {
 
         self.nodes[sibling_index.0].parent_index = new_parent_index;
 
-        self.nodes.remove(index.0);
+        // Must remove node first, then remove parent.
+        let node = self.nodes.remove(index.0);
         self.nodes.remove(parent_index.0);
+        node
     }
 }
 
@@ -755,13 +763,13 @@ impl<B: BoundingVolume + Copy + Debug, D: Copy + Debug> EnlargedBvh<B, D> {
         &self,
         stack: &mut Vec<NodeIndex>,
         bounding_volume: B,
-        f: impl FnMut(D),
+        f: impl FnMut(&D),
     ) {
         self.bvh.query_intersection_stack(stack, bounding_volume, f)
     }
 
     #[inline]
-    pub fn query_intersection(&self, bounding_volume: B, f: impl FnMut(D)) {
+    pub fn query_intersection(&self, bounding_volume: B, f: impl FnMut(&D)) {
         self.bvh.query_intersection(bounding_volume, f);
     }
     pub fn remove_leaf(&mut self, index: NodeIndex) {

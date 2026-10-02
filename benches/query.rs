@@ -65,7 +65,7 @@ fn regular_cube(c: &mut Criterion, a: usize) {
         b.iter(|| {
             let aabb = samples[i];
             bvh.query_intersection_stack(&mut query_stack, aabb, |id| {
-                if aabb.intersects(&list[id]) {
+                if aabb.intersects(&list[*id]) {
                     black_box(id);
                 }
             });
@@ -78,7 +78,7 @@ fn regular_cube(c: &mut Criterion, a: usize) {
         b.iter(|| {
             let aabb = samples[i];
             bvh.query_intersection(aabb, |id| {
-                if aabb.intersects(&list[id]) {
+                if aabb.intersects(&list[*id]) {
                     black_box(id);
                 }
             });

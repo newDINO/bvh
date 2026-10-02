@@ -54,14 +54,14 @@ fn query_fuzz() {
         });
 
         bvh.query_intersection(aabb, |index| {
-            if aabb.intersects(&aabbs[index]) {
-                intersection_bvh.insert(index);
+            if aabb.intersects(&aabbs[*index]) {
+                intersection_bvh.insert(*index);
             }
         });
 
         bvh.query_intersection_stack(&mut query_stack, aabb, |index| {
-            if aabb.intersects(&aabbs[index]) {
-                intersection_bvh_stack.insert(index);
+            if aabb.intersects(&aabbs[*index]) {
+                intersection_bvh_stack.insert(*index);
             }
         });
 

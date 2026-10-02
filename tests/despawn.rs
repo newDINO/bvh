@@ -69,7 +69,7 @@ fn despawn_fuzz() {
 
             bvh.query_intersection(aabb, |index| {
                 if aabb.intersects(&aabbs[&index].0) {
-                    intersection_bvh.insert(index);
+                    intersection_bvh.insert(*index);
                 }
             });
 
@@ -142,7 +142,7 @@ fn remove_all() {
 
         bvh.query_intersection(aabb, |index| {
             if aabb.intersects(&aabbs[&index].0) {
-                intersection_bvh.insert(index);
+                intersection_bvh.insert(*index);
             }
         });
         assert_eq!(intersection_bf, intersection_bvh);
