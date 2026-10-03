@@ -1,4 +1,4 @@
-use bvh::{BoundingVolume, Enlarge, IntersectSelf, RayCast, Vector};
+use dbvh::{BoundingVolume, Enlarge, IntersectSelf, RayCast, Vector};
 use glam::Vec3;
 
 #[derive(Clone, Copy)]

@@ -54,17 +54,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72f5acc6cb2ba439de613abc23857ec3d78374d8ed5ac84e9d11336e87da8649"
 
 [[package]]
-name = "bvh"
-version = "0.1.0"
-dependencies = [
- "criterion",
- "glam 0.33.10",
- "nalgebra",
- "rand",
- "rand_chacha",
-]
-
-[[package]]
 name = "bytemuck"
 version = "1.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -229,6 +218,17 @@ name = "crunchy"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
+
+[[package]]
+name = "dbvh"
+version = "0.1.0"
+dependencies = [
+ "criterion",
+ "glam 0.33.10",
+ "nalgebra",
+ "rand",
+ "rand_chacha",
+]
 
 [[package]]
 name = "either"

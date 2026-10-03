@@ -8,7 +8,7 @@ mod sphere;
 use std::collections::HashSet;
 
 use aabb::Aabb;
-use bvh::{EnlargedBvh, RayCast};
+use dbvh::{EnlargedBvh, RayCast};
 use rand_vec3::rand_vec3;
 
 use nalgebra as na;

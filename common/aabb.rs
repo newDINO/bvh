@@ -1,4 +1,4 @@
-use bvh::{BoundingVolume, Enlarge, IntersectSelf, RayCast, Vector};
+use dbvh::{BoundingVolume, Enlarge, IntersectSelf, RayCast, Vector};
 use nalgebra as na;
 
 #[derive(Clone, Copy, Debug)]

@@ -15,7 +15,7 @@
 //! #[path = "../common/aabb.rs"]
 //! mod aabb;
 //! use aabb::{Aabb, AabbVector};
-//! use bvh::{EnlargedBvh, IntersectSelf};
+//! use dbvh::{EnlargedBvh, IntersectSelf};
 //! use nalgebra as na;
 //!
 //! // create object list and bvh

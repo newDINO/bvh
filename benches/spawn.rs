@@ -1,8 +1,8 @@
 #[path = "../common/aabb.rs"]
 mod aabb;
 
-use bvh::EnlargedBvh;
 use criterion::{Criterion, criterion_group, criterion_main};
+use dbvh::EnlargedBvh;
 
 use nalgebra as na;
 

@@ -7,7 +7,7 @@ mod sphere;
 
 use std::collections::HashSet;
 
-use bvh::{EnlargedBvh, IntersectSelf};
+use dbvh::{EnlargedBvh, IntersectSelf};
 use nalgebra as na;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;

@@ -5,7 +5,7 @@ mod rand_vec3;
 use criterion::{Criterion, criterion_group, criterion_main};
 
 use aabb::{Aabb, AabbVector};
-use bvh::{EnlargedBvh, RayCast};
+use dbvh::{EnlargedBvh, RayCast};
 use rand_vec3::rand_vec3;
 
 use nalgebra as na;
