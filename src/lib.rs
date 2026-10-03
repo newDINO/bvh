@@ -52,7 +52,6 @@ use std::fmt::Debug;
 /// See [`guide`] for examples of how to implement this trait.
 pub trait BoundingVolume {
     type Point: Vector;
-    fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
 
     /// Normally this is surface area of the bounding volume,
@@ -62,6 +61,10 @@ pub trait BoundingVolume {
     fn surface_area_heuristic(&self) -> f32;
 
     fn center(&self) -> Self::Point;
+
+    /// Returns whether `self` can contain another [`BoundingVolume`].
+    /// Currently only [`EnlargedBvh`] uses this.
+    fn contains(&self, other: &Self) -> bool;
 }
 
 /// A basic trait for vectors.
