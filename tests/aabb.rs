@@ -2,7 +2,7 @@
 mod aabb;
 use aabb::Aabb;
 
-use bvh::BoundingVolume;
+use bvh::{BoundingVolume, SelfIntersectTest};
 use nalgebra as na;
 
 fn v(x: f32, y: f32, z: f32) -> na::Vector3<f32> {

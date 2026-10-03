@@ -5,7 +5,7 @@ mod rand_vec3;
 
 use std::collections::HashSet;
 
-use bvh::{BoundingVolume, EnlargedBvh};
+use bvh::{EnlargedBvh, SelfIntersectTest};
 use nalgebra as na;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;

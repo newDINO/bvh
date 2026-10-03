@@ -35,9 +35,11 @@
 // SOFTWARE.
 
 pub mod guide;
+mod intersection;
 mod ray_cast;
 mod slot_pool;
 
+pub use intersection::SelfIntersectTest;
 pub use ray_cast::RayCast;
 
 use slot_pool::{SlotPool, SlotPoolHandle};
@@ -47,7 +49,6 @@ use std::fmt::Debug;
 /// See [`guide`] for examples of how to implement this trait.
 pub trait BoundingVolume {
     type Point: Vector;
-    fn intersects(&self, other: &Self) -> bool;
     fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
 
@@ -141,7 +142,7 @@ impl<B: BoundingVolume, D> Default for Bvh<B, D> {
     }
 }
 
-impl<B: BoundingVolume, D> Bvh<B, D> {
+impl<B, D> Bvh<B, D> {
     pub fn new() -> Self {
         Self {
             root_index: NodeIndex::NULL,
@@ -159,88 +160,9 @@ impl<B: BoundingVolume, D> Bvh<B, D> {
 
         node
     }
+}
 
-    /// Performance compared to [`Self::query_intersection`] (tested using `cargo bench --bench query`):
-    ///
-    /// On Apple M4:
-    /// - Basically the same when there are 1K leaves.
-    /// - 10% improvement when there are 1M leaves.
-    ///
-    /// On Intel i5-3470:
-    /// - 7% worse when there are 1K leaves
-    /// - 2% better when there are 1M leaves.
-    ///
-    #[inline(always)]
-    pub fn query_intersection_stack(
-        &self,
-        stack: &mut Vec<NodeIndex>,
-        q: B,
-        mut f: impl FnMut(&D),
-    ) {
-        if self.root_index == NodeIndex::NULL {
-            return;
-        }
-
-        // SAFETY: self.root_index is valid as long as it is not NULL.
-        let root = unsafe { self.get_node_cfg(self.root_index) };
-
-        if q.intersects(&root.bounding_volume) {
-            stack.push(self.root_index);
-        }
-
-        while let Some(index) = stack.pop() {
-            let node = unsafe { self.get_node_cfg(index) };
-
-            match &node.ty {
-                NodeType::Internal { child1, child2 } => {
-                    let c1 = unsafe { self.get_node_cfg(*child1) };
-                    if q.intersects(&c1.bounding_volume) {
-                        stack.push(*child1);
-                    }
-
-                    let c2 = unsafe { self.get_node_cfg(*child2) };
-                    if q.intersects(&c2.bounding_volume) {
-                        stack.push(*child2);
-                    }
-                }
-                NodeType::Leaf(user_data) => f(user_data),
-            }
-        }
-    }
-
-    #[inline]
-    pub fn query_intersection(&self, q: B, mut f: impl FnMut(&D)) {
-        if self.root_index == NodeIndex::NULL {
-            return;
-        }
-
-        // SAFETY: self.root_index is valid as long as it is not NULL.
-        let root = unsafe { self.get_node_cfg(self.root_index) };
-
-        if q.intersects(&root.bounding_volume) {
-            self.query_intersection_rec(root, &q, &mut f);
-        }
-    }
-
-    fn query_intersection_rec(&self, node: &Node<B, D>, q: &B, f: &mut impl FnMut(&D)) {
-        match &node.ty {
-            NodeType::Internal { child1, child2 } => {
-                let c1 = unsafe { self.get_node_cfg(*child1) };
-
-                if q.intersects(&c1.bounding_volume) {
-                    self.query_intersection_rec(c1, q, f);
-                }
-
-                let c2 = unsafe { self.get_node_cfg(*child2) };
-
-                if q.intersects(&c2.bounding_volume) {
-                    self.query_intersection_rec(c2, q, f);
-                }
-            }
-            NodeType::Leaf(user_data) => f(user_data),
-        }
-    }
-
+impl<B: BoundingVolume, D> Bvh<B, D> {
     // pub fn nodes(&self) -> &SlotPool<Node> {
     //     &self.nodes
     // }
@@ -764,20 +686,6 @@ impl<B: BoundingVolume, D> EnlargedBvh<B, D> {
         }
     }
 
-    #[inline]
-    pub fn query_intersection_stack(
-        &self,
-        stack: &mut Vec<NodeIndex>,
-        bounding_volume: B,
-        f: impl FnMut(&D),
-    ) {
-        self.bvh.query_intersection_stack(stack, bounding_volume, f)
-    }
-
-    #[inline]
-    pub fn query_intersection(&self, bounding_volume: B, f: impl FnMut(&D)) {
-        self.bvh.query_intersection(bounding_volume, f);
-    }
     pub fn remove_leaf(&mut self, index: NodeIndex) {
         self.bvh.remove_leaf(index);
     }

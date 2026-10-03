@@ -15,7 +15,7 @@ glam = "0.33"
 criterion = "0.8"
 
 [[bench]]
-name = "query"
+name = "intersection"
 harness = false
 
 [[bench]]

@@ -7,7 +7,7 @@ use rand_vec3::rand_vec3;
 use std::collections::{HashMap, HashSet};
 
 use aabb::Aabb;
-use bvh::{BoundingVolume, EnlargedBvh, NodeIndex};
+use bvh::{EnlargedBvh, NodeIndex, SelfIntersectTest};
 
 use nalgebra as na;
 use rand::{RngExt, SeedableRng};

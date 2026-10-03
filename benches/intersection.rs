@@ -5,7 +5,7 @@ mod rand_vec3;
 
 use std::hint::black_box;
 
-use bvh::{BoundingVolume, EnlargedBvh};
+use bvh::{EnlargedBvh, SelfIntersectTest};
 use criterion::{Criterion, criterion_group, criterion_main};
 use nalgebra as na;
 use rand::SeedableRng;
