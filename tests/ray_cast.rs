@@ -2,6 +2,8 @@
 mod aabb;
 #[path = "../common/rand_vec3.rs"]
 mod rand_vec3;
+#[path = "../common/sphere.rs"]
+mod sphere;
 
 use std::collections::HashSet;
 
@@ -10,13 +12,16 @@ use bvh::{EnlargedBvh, RayCast};
 use rand_vec3::rand_vec3;
 
 use nalgebra as na;
-use rand::SeedableRng;
+use rand::{RngExt, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 
-use crate::aabb::AabbVector;
+use crate::{
+    aabb::AabbVector,
+    sphere::{BSVector, BoundingSphere},
+};
 
 #[test]
-fn ray_cast_fuzz() {
+fn ray_cast_aabb() {
     let min_start = na::Vector3::new(-11.0, -11.3, -9.8);
     let max_start = na::Vector3::new(5.6, 9.7, 4.2);
 
@@ -91,4 +96,76 @@ fn ray_cast_fuzz() {
     }
 
     assert!(tested_ray as f32 > n_tests as f32 * 0.9);
+}
+
+#[test]
+fn ray_cast_sphere() {
+    let min_pos = na::Vector3::new(-11.0, -11.3, -9.8);
+    let max_pos = na::Vector3::new(5.6, 9.7, 4.2);
+    let max_size = 1.1;
+
+    let mut rng = ChaCha8Rng::from_seed([12; _]);
+    let mut list: Vec<BoundingSphere> = Vec::new();
+    let mut bvh: EnlargedBvh<BoundingSphere, usize> = EnlargedBvh::new(0.01);
+
+    for _ in 0..500 {
+        let sphere = BoundingSphere::new(
+            rand_vec3(&mut rng, min_pos, max_pos).into(),
+            rng.random::<f32>() * max_size,
+        );
+        let index = list.len();
+        list.push(sphere);
+        bvh.insert_leaf(sphere, index);
+    }
+
+    let mut i = 0;
+    while i < 1000 {
+        let origin = rand_vec3(&mut rng, min_pos, max_pos);
+
+        let dir = rand_vec3(
+            &mut rng,
+            na::Vector3::repeat(-1.0),
+            na::Vector3::repeat(1.0),
+        );
+
+        let l = dir.norm();
+        if l < f32::EPSILON {
+            continue;
+        }
+        i += 1;
+
+        let dir = dir * (1.0 / l);
+
+        let origin = BSVector(origin.into());
+        let dir = BSVector(dir.into());
+
+        let mut bf_intersects = false;
+        let mut bf_min_dist = f32::MAX;
+        let mut bf_indices: HashSet<usize> = HashSet::new();
+
+        list.iter().enumerate().for_each(|(index, sphere)| {
+            if let Some(t) = sphere.ray_cast(&origin, &dir) {
+                bf_intersects = true;
+                if t < bf_min_dist {
+                    bf_min_dist = t;
+
+                    bf_indices.clear();
+                    bf_indices.insert(index);
+                } else if t == bf_min_dist {
+                    bf_indices.insert(index);
+                }
+            }
+        });
+
+        let bvh_result = bvh.ray_cast(&origin, &dir, |origin, dir, index| {
+            let sphere = list[*index];
+            sphere.ray_cast(origin, dir).map(|t| (t, *index))
+        });
+
+        if bf_intersects {
+            let (bvh_dist, bvh_index) = bvh_result.unwrap();
+            assert_eq!(bvh_dist, bf_min_dist);
+            assert!(bf_indices.contains(&bvh_index));
+        }
+    }
 }

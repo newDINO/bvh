@@ -24,7 +24,7 @@ impl BoundingSphere {
     }
 }
 
-pub struct BSVector(Vec3);
+pub struct BSVector(pub Vec3);
 impl Vector for BSVector {
     fn distance_heuristic(&self, other: &Self) -> f32 {
         self.0.distance_squared(other.0)
