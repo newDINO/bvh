@@ -40,7 +40,8 @@ mod intersection;
 mod ray_cast;
 mod slot_pool;
 
-pub use intersection::SelfIntersectTest;
+pub use enlarge::{Enlarge, EnlargedBvh};
+pub use intersection::IntersectSelf;
 pub use ray_cast::RayCast;
 
 use slot_pool::{SlotPool, SlotPoolHandle};
@@ -53,12 +54,6 @@ pub trait BoundingVolume {
     type Point: Vector;
     fn contains(&self, other: &Self) -> bool;
     fn union(&self, other: &Self) -> Self;
-
-    /// Returns a bounding volume that is larger than itself.
-    /// This is an optimization for dynamic bvh so that
-    /// when object moves, as long as the bounding volume is within the enlarged leaf bounding volume,
-    /// the leaf is not re-inserted.
-    fn enlarge(&self, r: f32) -> Self;
 
     /// Normally this is surface area of the bounding volume,
     /// but you can also mulitply it by a coefficient.
@@ -670,37 +665,5 @@ impl<B: BoundingVolume, D> Bvh<B, D> {
         let node = self.nodes.remove(index.0);
         self.nodes.remove(parent_index.0);
         node
-    }
-}
-
-/// A wrapper of [`Bvh`] that makes leaf bounding volume larger than object bounding volume.
-///
-/// See the documentation of [`Bvh`] and its methods for more details.
-#[derive(Debug)]
-pub struct EnlargedBvh<B, D> {
-    bvh: Bvh<B, D>,
-    enlargement: f32,
-}
-impl<B: BoundingVolume, D> EnlargedBvh<B, D> {
-    pub fn new(enlargement: f32) -> Self {
-        Self {
-            bvh: Bvh::new(),
-            enlargement,
-        }
-    }
-
-    pub fn remove_leaf(&mut self, index: NodeIndex) {
-        self.bvh.remove_leaf(index);
-    }
-    pub fn insert_leaf(&mut self, bounding_volume: B, user_data: D) -> NodeIndex {
-        self.bvh
-            .insert_leaf(bounding_volume.enlarge(self.enlargement), user_data)
-    }
-    pub fn update_leaf(&mut self, index: NodeIndex, bounding_volume: B) {
-        let node = &self.bvh.nodes[index.0];
-        if !node.bounding_volume.contains(&bounding_volume) {
-            self.bvh
-                .update_leaf(index, bounding_volume.enlarge(self.enlargement));
-        }
     }
 }

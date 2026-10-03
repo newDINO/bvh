@@ -1,4 +1,4 @@
-use bvh::{BoundingVolume, RayCast, SelfIntersectTest, Vector};
+use bvh::{BoundingVolume, Enlarge, IntersectSelf, RayCast, Vector};
 use nalgebra as na;
 
 #[derive(Clone, Copy, Debug)]
@@ -48,14 +48,6 @@ impl BoundingVolume for Aabb {
     }
 
     #[inline]
-    fn enlarge(&self, r: f32) -> Self {
-        Self {
-            min: self.min.add_scalar(-r),
-            max: self.max.add_scalar(r),
-        }
-    }
-
-    #[inline]
     fn surface_area_heuristic(&self) -> f32 {
         let size = self.size();
         size.x * size.y + size.x * size.z + size.y * size.z
@@ -75,7 +67,17 @@ impl BoundingVolume for Aabb {
     }
 }
 
-impl SelfIntersectTest for Aabb {
+impl Enlarge for Aabb {
+    #[inline]
+    fn enlarge(&self, r: f32) -> Self {
+        Self {
+            min: self.min.add_scalar(-r),
+            max: self.max.add_scalar(r),
+        }
+    }
+}
+
+impl IntersectSelf for Aabb {
     #[inline]
     fn intersects(&self, other: &Self) -> bool {
         self.intersection(other).is_some()

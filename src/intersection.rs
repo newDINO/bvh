@@ -3,11 +3,11 @@ use crate::{Bvh, EnlargedBvh, Node, NodeIndex, NodeType};
 /// A trait for types that can detect whether it intersects with another one of its type.
 ///
 /// See [`guide`](crate::guide) for examples of how to implement this trait.
-pub trait SelfIntersectTest {
+pub trait IntersectSelf {
     fn intersects(&self, other: &Self) -> bool;
 }
 
-impl<B: SelfIntersectTest, D> Bvh<B, D> {
+impl<B: IntersectSelf, D> Bvh<B, D> {
     #[inline]
     pub fn query_intersection(&self, q: B, mut f: impl FnMut(&D)) {
         if self.root_index == NodeIndex::NULL {
@@ -90,7 +90,7 @@ impl<B: SelfIntersectTest, D> Bvh<B, D> {
     }
 }
 
-impl<B: SelfIntersectTest, D> EnlargedBvh<B, D> {
+impl<B: IntersectSelf, D> EnlargedBvh<B, D> {
     #[inline]
     pub fn query_intersection_stack(
         &self,
