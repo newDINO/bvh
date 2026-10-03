@@ -9,6 +9,45 @@
 //! Bvh intersection test is about 7 times faster than brute force search when there are 1K objects,
 //! and about 1000 times faster when there are 1M objects.
 //! Bvh ray cast is about 10 times faster than brute force method with 1000 objects.
+//!
+//! A simple example:
+//! ```
+//! #[path = "../common/aabb.rs"]
+//! mod aabb;
+//! use aabb::{Aabb, AabbVector};
+//! use bvh::{EnlargedBvh, IntersectSelf};
+//! use nalgebra as na;
+//!
+//! // create object list and bvh
+//! let mut list: Vec<Aabb> = Vec::new();
+//! let mut bvh: EnlargedBvh<Aabb, usize> = EnlargedBvh::new(0.1);
+//!
+//! // insert aabb
+//! let aabb1 = Aabb {
+//!     min: na::Vector3::repeat(0.0),
+//!     max: na::Vector3::repeat(1.0),
+//! };
+//! let index = list.len();
+//! list.push(aabb1);
+//! bvh.insert_leaf(aabb1, index);
+//!
+//! // intersection test
+//! let aabb2 = Aabb {
+//!     min: na::Vector3::repeat(0.5),
+//!     max: na::Vector3::repeat(1.5),
+//! };
+//!
+//! let mut all_intersections = Vec::new();
+//! bvh.query_intersection(aabb2, |index| {
+//!     // Because this is an enlarged bvh,
+//!     // index passed to this closure does not always report a real intersection.
+//!     if aabb2.intersects(&list[*index]) {
+//!         all_intersections.push(*index);
+//!     }
+//! });
+//!
+//! assert_eq!(all_intersections, [0]);
+//! ```
 
 // Original license of box2d:
 //
