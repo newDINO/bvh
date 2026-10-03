@@ -1,6 +1,7 @@
 use crate::{Bvh, EnlargedBvh, NodeIndex, NodeType, Vector};
 
 /// A trait for types that can perform ray casting against a bounding volume.
+///
 /// See [`guide`](crate::guide) for examples of how to implement this trait.
 pub trait RayCast {
     type Vector: Vector;

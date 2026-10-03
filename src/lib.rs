@@ -34,6 +34,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+mod enlarge;
 pub mod guide;
 mod intersection;
 mod ray_cast;
@@ -46,6 +47,7 @@ use slot_pool::{SlotPool, SlotPoolHandle};
 use std::fmt::Debug;
 
 /// A basic trait for a bounding volume.
+///
 /// See [`guide`] for examples of how to implement this trait.
 pub trait BoundingVolume {
     type Point: Vector;
@@ -68,6 +70,7 @@ pub trait BoundingVolume {
 }
 
 /// A basic trait for vectors.
+///
 /// See [`guide`] for examples of how to implement this trait.
 pub trait Vector {
     /// Normally this is the Euclidean distance between two point,

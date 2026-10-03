@@ -1,6 +1,7 @@
 use crate::{Bvh, EnlargedBvh, Node, NodeIndex, NodeType};
 
 /// A trait for types that can detect whether it intersects with another one of its type.
+///
 /// See [`guide`](crate::guide) for examples of how to implement this trait.
 pub trait SelfIntersectTest {
     fn intersects(&self, other: &Self) -> bool;
