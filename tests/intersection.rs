@@ -2,6 +2,8 @@
 mod aabb;
 #[path = "../common/rand_vec3.rs"]
 mod rand_vec3;
+#[path = "../common/sphere.rs"]
+mod sphere;
 
 use std::collections::HashSet;
 
@@ -13,8 +15,10 @@ use rand_chacha::ChaCha8Rng;
 use aabb::Aabb;
 use rand_vec3::rand_vec3;
 
+use crate::sphere::BoundingSphere;
+
 #[test]
-fn query_fuzz() {
+fn intersection_aabb() {
     let min_start = na::Vector3::new(-11.0, -11.3, -9.8);
     let max_start = na::Vector3::new(5.6, 9.7, 4.2);
 
@@ -71,5 +75,50 @@ fn query_fuzz() {
         intersection_bf.clear();
         intersection_bvh.clear();
         intersection_bvh_stack.clear();
+    }
+}
+
+#[test]
+fn intersection_sphere() {
+    let min_pos = na::Vector3::new(-11.0, -11.3, -9.8);
+    let max_pos = na::Vector3::new(5.6, 9.7, 4.2);
+    let max_size = 1.1;
+
+    let mut rng = ChaCha8Rng::from_seed([12; _]);
+    let mut list: Vec<BoundingSphere> = Vec::new();
+    let mut bvh: EnlargedBvh<BoundingSphere, usize> = EnlargedBvh::new(0.01);
+
+    for _ in 0..500 {
+        let sphere = BoundingSphere::new(
+            rand_vec3(&mut rng, min_pos, max_pos).into(),
+            rng.random::<f32>() * max_size,
+        );
+        let index = list.len();
+        list.push(sphere);
+        bvh.insert_leaf(sphere, index);
+    }
+
+    let mut intersections_bvh = HashSet::new();
+    let mut intersections_bf = HashSet::new();
+    for _ in 0..1000 {
+        let sphere = BoundingSphere::new(
+            rand_vec3(&mut rng, min_pos, max_pos).into(),
+            rng.random::<f32>() * max_size,
+        );
+        bvh.query_intersection(sphere, |index| {
+            let other = list[*index];
+            if sphere.intersects(&other) {
+                intersections_bvh.insert(*index);
+            }
+        });
+        list.iter().enumerate().for_each(|(index, other)| {
+            if sphere.intersects(&other) {
+                intersections_bf.insert(index);
+            }
+        });
+
+        assert_eq!(intersections_bf, intersections_bvh);
+        intersections_bf.clear();
+        intersections_bvh.clear();
     }
 }

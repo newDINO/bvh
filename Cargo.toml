@@ -9,7 +9,7 @@ edition = "2024"
 [dev-dependencies]
 rand = "0.10"
 rand_chacha = "0.10"
-nalgebra = "0.35"
+nalgebra = { version = "0.35", features = ["convert-glam033"] }
 glam = "0.33"
 
 criterion = "0.8"
