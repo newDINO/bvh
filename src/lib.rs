@@ -52,6 +52,7 @@ use std::fmt::Debug;
 /// See [`guide`] for examples of how to implement this trait.
 pub trait BoundingVolume {
     type Point: Vector;
+    /// Returns the smallest [`BoundingVolume`] that contains both `self` and `other`
     fn union(&self, other: &Self) -> Self;
 
     /// Normally this is surface area of the bounding volume,
@@ -60,6 +61,7 @@ pub trait BoundingVolume {
     /// but you can also return `r * r` here as an optimization.
     fn surface_area_heuristic(&self) -> f32;
 
+    /// Position of the centroid of the [`BoundingVolume`].
     fn center(&self) -> Self::Point;
 
     /// Returns whether `self` can contain another [`BoundingVolume`].

@@ -6,10 +6,9 @@ use crate::{Bvh, EnlargedBvh, NodeIndex, NodeType, Vector};
 pub trait RayCast {
     type Vector: Vector;
 
-    /// * returns `Some(t)` if the ray intersects the volume, where `t`
-    ///   is the entry parameter (or a lower bound of hit distances). Returns `None`
-    ///   otherwise.
-    /// * Only non-negative `t` values should be considered as valid hits.
+    /// - Returns `Some(t)` if the ray intersects the volume. Returns `None` otherwise.
+    /// - Only non-negative `t` values should be considered as valid hits.
+    /// - For [`BoundingVolume`](crate::BoundingVolume), this should return `Some(0.0)` when the origin is inside the volume.
     fn ray_cast(&self, origin: &Self::Vector, dir: &Self::Vector) -> Option<f32>;
 }
 
